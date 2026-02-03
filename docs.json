@@ -2,7 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "name": "Latch",
   "theme": "mint",
-  "favicon": "/assets/favicon.svg",
+  "favicon": "/docs/assets/favicon.svg",
   "colors": {
     "primary": "#171717"
   },
@@ -10,15 +10,15 @@
     "groups": [
       {
         "group": "Getting Started",
-        "pages": ["introduction", "quickstart"]
+        "pages": ["docs/introduction", "docs/quickstart"]
       },
       {
         "group": "Guides",
-        "pages": ["telegram"]
+        "pages": ["docs/telegram"]
       },
       {
         "group": "Reference",
-        "pages": ["configuration", "cli", "self-hosting", "troubleshooting"]
+        "pages": ["docs/configuration", "docs/cli", "docs/self-hosting", "docs/troubleshooting"]
       }
     ]
   }
