@@ -4,10 +4,11 @@ This folder contains the self-hosted documentation for Latch.
 
 ## Start here
 
-- [Quickstart](./quickstart.md)
-- [Configuration](./configuration.md)
-- [Telegram integration](./telegram.md)
-- [CLI](./cli.md)
-- [Self-hosting (production notes)](./self-hosting.md)
-- [Troubleshooting](./troubleshooting.md)
+- [Introduction](./introduction.mdx)
+- [Quickstart](./quickstart.mdx)
+- [Configuration](./configuration.mdx)
+- [Telegram integration](./telegram.mdx)
+- [CLI](./cli.mdx)
+- [Self-hosting (production notes)](./self-hosting.mdx)
+- [Troubleshooting](./troubleshooting.mdx)
 

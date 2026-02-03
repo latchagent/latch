@@ -1,0 +1,19 @@
+---
+title: Latch
+description: Guard proxy for MCP servers with deterministic policies and approvals.
+---
+
+Latch is an open-source guard proxy for MCP (Model Context Protocol) servers. It sits between your AI agent and its tools, enforcing deterministic policies:
+
+- Safe actions (reads, internal writes) pass through automatically
+- Risky actions (shell commands, external sends) require approval
+- Forbidden actions (payments, destructive ops) can be blocked entirely
+
+## Quickstart
+
+Start here:
+
+- [Quickstart (Docker)](./quickstart.mdx)
+- [Telegram integration](./telegram.mdx)
+- [CLI](./cli.mdx)
+
