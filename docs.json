@@ -5,24 +5,26 @@
   "colors": {
     "primary": "#171717"
   },
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": ["introduction", "quickstart"]
-    },
-    {
-      "group": "Guides",
-      "pages": ["telegram"]
-    },
-    {
-      "group": "Reference",
-      "pages": [
-        "configuration",
-        "cli",
-        "self-hosting",
-        "troubleshooting"
-      ]
-    }
-  ]
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Docs",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Guides",
+            "pages": ["telegram"]
+          },
+          {
+            "group": "Reference",
+            "pages": ["configuration", "cli", "self-hosting", "troubleshooting"]
+          }
+        ]
+      }
+    ]
+  }
 }
 
