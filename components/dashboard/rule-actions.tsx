@@ -282,7 +282,7 @@ function EditRuleDialog({
               id="toolName"
               value={toolName}
               onChange={(e) => setToolName(e.target.value)}
-              placeholder="e.g., shell.exec"
+                placeholder="e.g., shell_exec"
               className="font-mono"
             />
           </div>

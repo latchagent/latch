@@ -9,7 +9,7 @@ description: Environment variables for Docker and optional integrations.
 
 ### Required
 
-- `DATABASE_URL`: Postgres connection string.
+- `DATABASE_URL`: Postgres connection string. With Docker Compose, Postgres is published on `localhost:5433` by default.
 - `BETTER_AUTH_SECRET`: Secret used to sign auth/session data. **Change this**.
 - `BETTER_AUTH_URL`: Public URL of the app (e.g. `http://localhost:3000`).
 - `NEXT_PUBLIC_APP_URL`: Public URL of the app (same as above for most setups).

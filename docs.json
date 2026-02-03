@@ -1,0 +1,27 @@
+{
+  "name": "Latch",
+  "favicon": "docs/assets/favicon.svg",
+  "colors": {
+    "primary": "#171717"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["docs/introduction", "docs/quickstart"]
+    },
+    {
+      "group": "Guides",
+      "pages": ["docs/telegram"]
+    },
+    {
+      "group": "Reference",
+      "pages": [
+        "docs/configuration",
+        "docs/cli",
+        "docs/self-hosting",
+        "docs/troubleshooting"
+      ]
+    }
+  ]
+}
+

@@ -127,16 +127,16 @@ The toy server provides deterministic tools for each action class:
 
 | Tool | Action Class | Example Args |
 |------|--------------|--------------|
-| `notes.read` | READ | `{ "noteId": "123" }` |
-| `file.write` | WRITE | `{ "path": "/tmp/test", "content": "hello" }` |
-| `email.send` | SEND | `{ "to": "user@gmail.com", "subject": "Hi", "body": "Hello" }` |
-| `shell.exec` | EXECUTE | `{ "command": "ls -la" }` |
-| `form.submit` | SUBMIT | `{ "url": "https://example.com", "data": {} }` |
-| `payment.send` | TRANSFER_VALUE | `{ "to": "alice", "amount": 100 }` |
+| `notes_read` | READ | `{ "noteId": "123" }` |
+| `file_write` | WRITE | `{ "path": "/tmp/test", "content": "hello" }` |
+| `email_send` | SEND | `{ "to": "user@gmail.com", "subject": "Hi", "body": "Hello" }` |
+| `shell_exec` | EXECUTE | `{ "command": "ls -la" }` |
+| `form_submit` | SUBMIT | `{ "url": "https://example.com", "data": {} }` |
+| `payment_send` | TRANSFER_VALUE | `{ "to": "alice", "amount": 100 }` |
 
 Test helpers:
-- `_test.getInvocations` - Get invocation count (for assertions)
-- `_test.reset` - Reset invocation log
+- `_test_getInvocations` - Get invocation count (for assertions)
+- `_test_reset` - Reset invocation log
 
 Invocations are logged to `/tmp/toy-mcp-invocations.json`.
 
@@ -198,7 +198,7 @@ node packages/cli/dist/index.js run \
 
 1. **Trigger approval:**
    ```bash
-   echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"shell.exec","arguments":{"command":"ls"}}}' | \
+   echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"shell_exec","arguments":{"command":"ls"}}}' | \
      node packages/cli/dist/index.js run ...
    ```
 
@@ -224,7 +224,7 @@ node packages/cli/dist/index.js run \
 
 4. **Retry with token:**
    ```bash
-   echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"shell.exec","arguments":{"command":"ls"},"approvalToken":"<token>"}}' | \
+   echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"shell_exec","arguments":{"command":"ls"},"approvalToken":"<token>"}}' | \
      node packages/cli/dist/index.js run ...
    ```
 

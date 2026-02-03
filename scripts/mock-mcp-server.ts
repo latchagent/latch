@@ -143,8 +143,13 @@ function handleRequest(request: unknown): void {
       break;
 
     case "tools/call":
-      const toolName = params?.name;
-      const args = params?.arguments || {};
+      const paramsObj =
+        params && typeof params === "object" ? (params as Record<string, unknown>) : {};
+      const toolName = typeof paramsObj.name === "string" ? paramsObj.name : undefined;
+      const args =
+        paramsObj.arguments && typeof paramsObj.arguments === "object"
+          ? (paramsObj.arguments as Record<string, unknown>)
+          : {};
 
       console.error(`[mock-mcp] Tool call: ${toolName}`, JSON.stringify(args).slice(0, 100));
 

@@ -38,7 +38,7 @@ export async function runInit() {
     saveConfig(config);
     console.log(`\n✅ Config saved to ${getConfigPath()}`);
     console.log("\nYou can now run:");
-    console.log('  latch run --upstream "npx @modelcontextprotocol/server-github"\n');
+    console.log('  latch run --upstream-command "npx" --upstream-args "-y,@modelcontextprotocol/server-github"\n');
     rl.close();
 }
 //# sourceMappingURL=init.js.map

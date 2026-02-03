@@ -30,7 +30,7 @@ Latch intercepts tool calls from AI agents and enforces policies. Each rule has:
   - "submit": Submitting forms, creating PRs, publishing
   - "transfer_value": Payments, transfers, financial actions
   - "any": Matches all action types
-- tool_name: Specific tool to match (e.g., "shell.exec", "github.pr.create") or null for any
+- tool_name: Specific tool to match (e.g., "shell_exec", "github_pr_create") or null for any
 - domain_match: Domain pattern (e.g., "github.com", "*.internal.com") or null for any
 - recipient_match: Exact email address (e.g., "alice@example.com") - use this when matching specific recipients
 
@@ -43,7 +43,7 @@ Use recipient_match when the user specifies an exact email address, use domain_m
 
 Examples:
 - "Let the agent read anything" → allow + read + any tool
-- "Block shell commands" → deny + execute + tool_name: "shell.exec" (or similar)
+- "Block shell commands" → deny + execute + tool_name: "shell_exec" (or similar)
 - "Require approval for emails to external domains" → require_approval + send + domain not matching internal
 - "Allow GitHub but require approval for merges" → allow + read + github.com, require_approval + submit + github.com
 - "Allow emails to alice@example.com" → allow + send + recipient_match: "alice@example.com"`;

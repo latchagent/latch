@@ -12,7 +12,7 @@ export declare class MessageFramer {
     /**
      * Push a chunk of data and return any complete messages
      */
-    push(chunk: Buffer | string): any[];
+    push(chunk: Buffer | string): unknown[];
     /**
      * Check if there's buffered data (incomplete message)
      */

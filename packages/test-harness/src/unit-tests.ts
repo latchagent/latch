@@ -57,30 +57,30 @@ function assertFalse(actual: boolean, message?: string): void {
 console.log("\n=== Classifier Tests ===\n");
 
 test("classifies read operations", () => {
-  const result = classifyToolCall("notes.read", { noteId: "123" });
+  const result = classifyToolCall("notes_read", { noteId: "123" });
   assertEqual(result.actionClass, "read");
   assertEqual(result.riskLevel, "low");
 });
 
 test("classifies write operations", () => {
-  const result = classifyToolCall("file.write", { path: "/tmp/test", content: "hello" });
+  const result = classifyToolCall("file_write", { path: "/tmp/test", content: "hello" });
   assertEqual(result.actionClass, "write");
 });
 
 test("classifies execute operations", () => {
-  const result = classifyToolCall("shell.exec", { command: "ls -la" });
+  const result = classifyToolCall("shell_exec", { command: "ls -la" });
   assertEqual(result.actionClass, "execute");
   assertEqual(result.riskLevel, "high");
   assertTrue(result.riskFlags.shell_exec);
 });
 
 test("classifies submit operations", () => {
-  const result = classifyToolCall("form.submit", { url: "https://example.com", data: {} });
+  const result = classifyToolCall("form_submit", { url: "https://example.com", data: {} });
   assertEqual(result.actionClass, "submit");
 });
 
 test("classifies send operations", () => {
-  const result = classifyToolCall("email.send", {
+  const result = classifyToolCall("email_send", {
     to: "user@gmail.com",
     subject: "Test",
     body: "Hello",
@@ -90,7 +90,7 @@ test("classifies send operations", () => {
 });
 
 test("classifies transfer operations", () => {
-  const result = classifyToolCall("payment.send", { to: "alice", amount: 100 });
+  const result = classifyToolCall("payment_send", { to: "alice", amount: 100 });
   assertEqual(result.actionClass, "transfer_value");
   assertEqual(result.riskLevel, "critical");
 });
@@ -106,12 +106,12 @@ test("extracts domain from URL", () => {
 });
 
 test("extracts domain from email", () => {
-  const result = classifyToolCall("email.send", { to: "user@company.com" });
+  const result = classifyToolCall("email_send", { to: "user@company.com" });
   assertEqual(result.resource.recipientDomain, "company.com");
 });
 
 test("detects internal domains", () => {
-  const result = classifyToolCall("email.send", { to: "user@localhost" });
+  const result = classifyToolCall("email_send", { to: "user@localhost" });
   assertFalse(result.riskFlags.external_domain);
 });
 

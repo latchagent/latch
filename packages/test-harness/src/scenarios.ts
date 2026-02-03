@@ -64,7 +64,7 @@ export const BASE_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "notes.read",
+        name: "notes_read",
         arguments: { noteId: "note-123" },
       },
     },
@@ -84,7 +84,7 @@ export const BASE_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "file.write",
+        name: "file_write",
         arguments: { path: "/tmp/test.txt", content: "hello world" },
       },
     },
@@ -104,7 +104,7 @@ export const BASE_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "shell.exec",
+        name: "shell_exec",
         arguments: { command: "ls -la" },
       },
     },
@@ -127,7 +127,7 @@ export const BASE_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "form.submit",
+        name: "form_submit",
         arguments: {
           url: "https://example.com/submit",
           data: { name: "test" },
@@ -153,7 +153,7 @@ export const BASE_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "payment.send",
+        name: "payment_send",
         arguments: { to: "alice@example.com", amount: 100 },
       },
     },
@@ -175,7 +175,7 @@ export const BASE_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "email.send",
+        name: "email_send",
         arguments: {
           to: "external@gmail.com",
           subject: "Test",
@@ -245,7 +245,7 @@ export const APPROVAL_FLOW_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "shell.exec",
+        name: "shell_exec",
         arguments: { command: "echo hello" },
       },
     },
@@ -272,7 +272,7 @@ export const APPROVAL_FLOW_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "shell.exec",
+        name: "shell_exec",
         arguments: { command: "echo hello" },
       },
     },
@@ -296,7 +296,7 @@ export const APPROVAL_FLOW_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "shell.exec",
+        name: "shell_exec",
         arguments: { command: "echo hello" },
       },
     },
@@ -324,7 +324,7 @@ export const APPROVAL_FLOW_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "shell.exec",
+        name: "shell_exec",
         arguments: { command: "echo hello" },
       },
     },
@@ -348,7 +348,7 @@ export const APPROVAL_FLOW_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "shell.exec",
+        name: "shell_exec",
         arguments: { command: "echo hello" },
       },
     },
@@ -379,7 +379,7 @@ export const ERROR_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "shell.exec",
+        name: "shell_exec",
         arguments: { command: "ls" },
       },
     },
@@ -400,7 +400,7 @@ export const ERROR_SCENARIOS: TestScenario[] = [
     request: {
       method: "tools/call",
       params: {
-        name: "notes.read",
+        name: "notes_read",
         arguments: { noteId: "note-123" },
       },
     },

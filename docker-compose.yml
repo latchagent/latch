@@ -3,11 +3,21 @@ services:
     build: .
     ports:
       - "3000:3000"
+    # Load local environment variables from .env (recommended: cp env.example .env)
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql://latch:latch@db:5432/latch
-      - BETTER_AUTH_SECRET=your-secret-key
-      - BETTER_AUTH_URL=http://localhost:3000
-      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      # IMPORTANT: inside Docker, the app must connect to the `db` service hostname (not localhost).
+      # We intentionally do NOT read DATABASE_URL from `.env` because developers often set it to
+      # localhost:5433 for host tools (TablePlus/TableViewer). If you need to override the in-docker
+      # DB connection, set DATABASE_URL_DOCKER in `.env`.
+      - DATABASE_URL=${DATABASE_URL_DOCKER:-postgresql://latch:latch@db:5432/latch}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-your-secret-key-change-in-production}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-}
+      
     depends_on:
       db:
         condition: service_healthy
@@ -15,6 +25,8 @@ services:
 
   db:
     image: postgres:16-alpine
+    ports:
+      - "5433:5432"
     environment:
       POSTGRES_USER: latch
       POSTGRES_PASSWORD: latch

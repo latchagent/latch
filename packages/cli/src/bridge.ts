@@ -13,6 +13,16 @@ import {
 import { CloudClient } from "./cloud-client.js";
 import { MessageFramer } from "./message-framer.js";
 
+function isMCPRequest(message: unknown): message is MCPRequest {
+  if (!message || typeof message !== "object") return false;
+  const m = message as Record<string, unknown>;
+  if (m.jsonrpc !== "2.0") return false;
+  if (typeof m.method !== "string") return false;
+  const id = m.id;
+  if (!(typeof id === "string" || typeof id === "number")) return false;
+  return true;
+}
+
 export interface BridgeOptions {
   upstreamCommand: string;
   upstreamArgs: string[];
@@ -96,6 +106,7 @@ export async function runBridge(options: BridgeOptions): Promise<void> {
   process.stdin.on("data", (chunk) => {
     const messages = clientFramer.push(chunk);
     for (const message of messages) {
+      if (!isMCPRequest(message)) continue;
       handleClientMessage(message, upstream, cloud, pendingRequests, options);
     }
   });
@@ -108,7 +119,8 @@ export async function runBridge(options: BridgeOptions): Promise<void> {
   upstream.stdout?.on("data", (chunk) => {
     const messages = upstreamFramer.push(chunk);
     for (const message of messages) {
-      handleUpstreamMessage(message, pendingRequests);
+      // Upstream messages can be notifications/responses; validate inside handler.
+      handleUpstreamMessage(message as MCPResponse, pendingRequests);
     }
   });
 

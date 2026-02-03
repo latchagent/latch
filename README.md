@@ -17,7 +17,7 @@ Latch is an open-source guard proxy for MCP (Model Context Protocol) servers. It
 ```bash
 git clone https://github.com/latchhq/latch
 cd latch
-docker compose up
+docker compose up --build
 ```
 
 Dashboard: http://localhost:3000
@@ -40,8 +40,8 @@ latch run --upstream-command "npx" --upstream-args "-y,@modelcontextprotocol/ser
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │  AI Agent   │────▶│  Latch CLI  │────▶│ MCP Server  │
-│  (Claude,   │     │   (proxy)   │     │  (GitHub,   │
-│   Cursor)   │     │             │     │   etc.)     │
+│             │     │   (proxy)   │     │             │
+│             │     │             │     │             │
 └─────────────┘     └─────────────┘     └─────────────┘
                           │
                           ▼

@@ -90,8 +90,7 @@ function computeRequestHash(toolName, upstreamId, argsHash) {
  * Generate a secure random token
  */
 function generateSecureToken(bytes = 32) {
-    const { randomBytes } = require("crypto");
-    return randomBytes(bytes).toString("hex");
+    return (0, crypto_1.randomBytes)(bytes).toString("hex");
 }
 /**
  * Hash a token for storage (never store raw tokens)

@@ -7,12 +7,12 @@
  * Logs all invocations to stderr for test assertions.
  *
  * Tools:
- * - notes.read (READ) - Read a note
- * - file.write (WRITE) - Write to a file
- * - email.send (SEND) - Send an email
- * - shell.exec (EXECUTE) - Execute a command
- * - form.submit (SUBMIT) - Submit a form
- * - payment.send (TRANSFER_VALUE) - Send a payment
+ * - notes_read (READ) - Read a note
+ * - file_write (WRITE) - Write to a file
+ * - email_send (SEND) - Send an email
+ * - shell_exec (EXECUTE) - Execute a command
+ * - form_submit (SUBMIT) - Submit a form
+ * - payment_send (TRANSFER_VALUE) - Send a payment
  *
  * Each tool logs its invocation and returns a predictable response.
  */
@@ -56,7 +56,7 @@ function getInvocationCount(tool?: string): number {
 // Tool definitions
 const TOOLS = [
   {
-    name: "notes.read",
+    name: "notes_read",
     description: "Read a note by ID (READ action class)",
     inputSchema: {
       type: "object",
@@ -67,7 +67,7 @@ const TOOLS = [
     },
   },
   {
-    name: "file.write",
+    name: "file_write",
     description: "Write content to a file (WRITE action class)",
     inputSchema: {
       type: "object",
@@ -79,7 +79,7 @@ const TOOLS = [
     },
   },
   {
-    name: "email.send",
+    name: "email_send",
     description: "Send an email (SEND action class)",
     inputSchema: {
       type: "object",
@@ -92,7 +92,7 @@ const TOOLS = [
     },
   },
   {
-    name: "shell.exec",
+    name: "shell_exec",
     description: "Execute a shell command (EXECUTE action class)",
     inputSchema: {
       type: "object",
@@ -104,7 +104,7 @@ const TOOLS = [
     },
   },
   {
-    name: "form.submit",
+    name: "form_submit",
     description: "Submit a form to a URL (SUBMIT action class)",
     inputSchema: {
       type: "object",
@@ -117,7 +117,7 @@ const TOOLS = [
     },
   },
   {
-    name: "payment.send",
+    name: "payment_send",
     description: "Send a payment (TRANSFER_VALUE action class)",
     inputSchema: {
       type: "object",
@@ -131,7 +131,7 @@ const TOOLS = [
     },
   },
   {
-    name: "_test.getInvocations",
+    name: "_test_getInvocations",
     description: "Test helper: get invocation count",
     inputSchema: {
       type: "object",
@@ -141,7 +141,7 @@ const TOOLS = [
     },
   },
   {
-    name: "_test.reset",
+    name: "_test_reset",
     description: "Test helper: reset invocation log",
     inputSchema: {
       type: "object",
@@ -156,7 +156,7 @@ function handleToolCall(
   args: Record<string, unknown>
 ): { success: boolean; result?: unknown; error?: string } {
   switch (name) {
-    case "notes.read": {
+    case "notes_read": {
       logInvocation(name, args);
       const noteId = args.noteId as string;
       return {
@@ -169,7 +169,7 @@ function handleToolCall(
       };
     }
 
-    case "file.write": {
+    case "file_write": {
       logInvocation(name, args);
       const path = args.path as string;
       const content = args.content as string;
@@ -183,7 +183,7 @@ function handleToolCall(
       };
     }
 
-    case "email.send": {
+    case "email_send": {
       logInvocation(name, args);
       const to = args.to as string;
       const subject = args.subject as string;
@@ -198,7 +198,7 @@ function handleToolCall(
       };
     }
 
-    case "shell.exec": {
+    case "shell_exec": {
       logInvocation(name, args);
       const command = args.command as string;
       return {
@@ -212,7 +212,7 @@ function handleToolCall(
       };
     }
 
-    case "form.submit": {
+    case "form_submit": {
       logInvocation(name, args);
       const url = args.url as string;
       const data = args.data as Record<string, unknown>;
@@ -226,7 +226,7 @@ function handleToolCall(
       };
     }
 
-    case "payment.send": {
+    case "payment_send": {
       logInvocation(name, args);
       const to = args.to as string;
       const amount = args.amount as number;
@@ -243,7 +243,7 @@ function handleToolCall(
       };
     }
 
-    case "_test.getInvocations": {
+    case "_test_getInvocations": {
       const tool = args.tool as string | undefined;
       return {
         success: true,
@@ -256,7 +256,7 @@ function handleToolCall(
       };
     }
 
-    case "_test.reset": {
+    case "_test_reset": {
       invocations.length = 0;
       fs.writeFileSync(LOG_FILE, "[]");
       return {
