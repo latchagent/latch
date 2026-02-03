@@ -1,6 +1,10 @@
 {
   "$schema": "https://mintlify.com/schema.json",
   "name": "Latch",
+  "favicon": "docs/assets/favicon.svg",
+  "colors": {
+    "primary": "#171717"
+  },
   "navigation": [
     {
       "group": "Getting Started",
