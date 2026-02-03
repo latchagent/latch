@@ -1,5 +1,6 @@
 {
   "name": "Latch",
+  "theme": "mint",
   "favicon": "docs/assets/favicon.svg",
   "colors": {
     "primary": "#171717"
