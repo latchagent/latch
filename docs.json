@@ -1,26 +1,26 @@
 {
   "name": "Latch",
   "theme": "mint",
-  "favicon": "docs/assets/favicon.svg",
+  "favicon": "assets/favicon.svg",
   "colors": {
     "primary": "#171717"
   },
   "navigation": [
     {
       "group": "Getting Started",
-      "pages": ["docs/introduction", "docs/quickstart"]
+      "pages": ["introduction", "quickstart"]
     },
     {
       "group": "Guides",
-      "pages": ["docs/telegram"]
+      "pages": ["telegram"]
     },
     {
       "group": "Reference",
       "pages": [
-        "docs/configuration",
-        "docs/cli",
-        "docs/self-hosting",
-        "docs/troubleshooting"
+        "configuration",
+        "cli",
+        "self-hosting",
+        "troubleshooting"
       ]
     }
   ]
