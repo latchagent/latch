@@ -13,11 +13,11 @@
 
 ### Optional (Telegram approvals)
 
-If you want Telegram notifications/approvals, you’ll also need Telegram-related env vars (see the dashboard settings and `scripts/setup-telegram.ts`).
+If you want Telegram notifications/approvals, you’ll also need Telegram-related env vars and a webhook (see [Telegram integration](./telegram.md)).
 
 ## CLI configuration
 
-The CLI stores defaults in `~/.latch/config.yaml`.
+The CLI stores defaults in `~/.latch/config.json`.
 
 See [CLI](./cli.md).
 
