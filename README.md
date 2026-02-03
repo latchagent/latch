@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Latch
 
-## Getting Started
+Control layer for autonomous AI agents. Safe actions run automatically. Risky actions wait for approval.
 
-First, run the development server:
+## What is Latch?
+
+Latch is an open-source guard proxy for MCP (Model Context Protocol) servers. It sits between your AI agent and its tools, enforcing policies on what the agent can do:
+
+- **Safe actions** (reads, internal writes) → Pass through automatically
+- **Risky actions** (shell commands, external sends) → Require human approval
+- **Forbidden actions** (payments, destructive ops) → Blocked entirely
+
+## Quick Start
+
+### With Docker
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/latchhq/latch
+cd latch
+docker compose up
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Dashboard: http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Install CLI
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install -g @latch/cli
+latch init
+```
 
-## Learn More
+### Wrap an MCP Server
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+latch run --upstream-command "npx" --upstream-args "-y,@modelcontextprotocol/server-github"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How It Works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  AI Agent   │────▶│  Latch CLI  │────▶│ MCP Server  │
+│  (Claude,   │     │   (proxy)   │     │  (GitHub,   │
+│   Cursor)   │     │             │     │   etc.)     │
+└─────────────┘     └─────────────┘     └─────────────┘
+                          │
+                          ▼
+                    ┌─────────────┐
+                    │  Dashboard  │
+                    │  (policies, │
+                    │  approvals) │
+                    └─────────────┘
+```
 
-## Deploy on Vercel
+1. Agent makes a tool call
+2. Latch CLI intercepts and classifies the action
+3. Policy is evaluated (allow / deny / require approval)
+4. If approved, call is forwarded to the real MCP server
+5. Everything is logged for audit
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Action Classes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Class | Default | Examples |
+|-------|---------|----------|
+| READ | Allow | File reads, API queries |
+| WRITE | Allow | File writes, updates |
+| SEND | Approval for external | Emails, messages |
+| EXECUTE | Require approval | Shell commands |
+| SUBMIT | Require approval | PRs, form submissions |
+| TRANSFER_VALUE | Deny | Payments, transfers |
+
+## Features
+
+- **Deterministic policies** - Rules-based, no AI making security decisions
+- **Natural language rules** - Create policies in plain English
+- **Approval workflow** - Single-use tokens, time-limited leases
+- **Audit logging** - Full history of all tool calls
+- **Telegram notifications** - Approve from your phone
+- **Self-hosted** - Your data stays on your infrastructure
+
+## Documentation
+
+See the [docs](./docs) folder for detailed documentation.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and guidelines.
+
+## License
+
+MIT - see [LICENSE](./LICENSE)

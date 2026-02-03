@@ -1,0 +1,20 @@
+{
+  "name": "@latch/demo-mcp-server",
+  "version": "0.1.0",
+  "description": "Deterministic MCP server for testing Latch",
+  "type": "module",
+  "bin": {
+    "demo-mcp-server": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.0.0",
+    "typescript": "^5"
+  }
+}

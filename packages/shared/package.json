@@ -1,0 +1,36 @@
+{
+  "name": "@latch/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./hash": {
+      "types": "./dist/hash.d.ts",
+      "default": "./dist/hash.js"
+    },
+    "./classifier": {
+      "types": "./dist/classifier.d.ts",
+      "default": "./dist/classifier.js"
+    },
+    "./redactor": {
+      "types": "./dist/redactor.d.ts",
+      "default": "./dist/redactor.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
