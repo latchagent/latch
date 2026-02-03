@@ -9,6 +9,40 @@ Latch is an open-source guard proxy for MCP (Model Context Protocol) servers. It
 - Risky actions (shell commands, external sends) require approval
 - Forbidden actions (payments, destructive ops) can be blocked entirely
 
+Repo: [Latch Open Source](https://github.com/latchagent/latch)
+
+## Core pages (start here)
+
+These three pages are the heart of Latch. If you only look at a few screens, make it these.
+
+### Dashboard
+
+The dashboard is where you create workspaces, agents, and upstreams, and see the system working end-to-end.
+
+![Latch dashboard](/docs/assets/dashboard.png)
+
+### Policies
+
+Policies are the rules that decide whether a tool call is **allowed**, **denied**, or **requires approval**.
+
+![Latch policies](/docs/assets/policies.png)
+
+### Audit log
+
+The audit log is the paper trail: every request, the decision, and redacted arguments so you can review what happened later.
+
+![Latch audit log](/docs/assets/audit-logs.png)
+
+## Other features
+
+- **Deterministic enforcement**: decisions are rules-based (no “LLM deciding permissions”).
+- **Action classes**: tool calls are classified into `read`, `write`, `send`, `execute`, `submit`, `transfer_value`.
+- **Approvals**: risky actions can be approved with single-use tokens (and optional time-limited leases).
+- **Telegram integration (optional)**: get approval notifications on your phone and approve/deny quickly.
+- **Redaction**: sensitive fields are redacted before being stored/logged.
+- **Self-hosted**: run locally with Docker; keep your data on your own infrastructure.
+- **CLI proxy**: wrap any upstream MCP server without changing your agent.
+
 ## Quickstart
 
 Start here:
