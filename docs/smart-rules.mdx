@@ -1,0 +1,164 @@
+---
+title: Smart Rules
+description: Define security policies in plain English, evaluated by AI in real-time.
+---
+
+Smart Rules let you write security policies in natural language instead of rigid patterns. When a tool call comes in, an AI evaluates whether it matches your condition.
+
+## Why Smart Rules?
+
+Traditional pattern-based rules are great for exact matches:
+- Block tool `delete_file`
+- Require approval for domain `github.com`
+
+But what about:
+- "Block searches for sensitive files like .env, passwords, or SSH keys"
+- "Require approval for any operation that could expose credentials"
+- "Deny requests targeting directories outside the project"
+
+These are hard to express as patterns. Smart rules solve this.
+
+## Creating a Smart Rule
+
+1. Go to **Rules** in the dashboard
+2. Click **Create Rule**
+3. Toggle on **Smart Rule (AI-powered)**
+4. Set the **Effect** (Allow, Deny, or Require Approval)
+5. Write your **Condition** in plain English
+6. Optionally scope to a specific **Upstream** or **Tool**
+
+### Example Conditions
+
+**Block sensitive file access:**
+```
+Searches or file operations targeting sensitive files like .env, 
+passwords, SSH keys, credentials, API keys, or /etc/passwd
+```
+
+**Require approval for external operations:**
+```
+Any operation that sends data to external domains or 
+recipients outside the organization
+```
+
+**Block destructive database operations:**
+```
+Database queries that could delete, drop, or truncate 
+tables or data
+```
+
+**Require approval for code changes:**
+```
+Operations that create, modify, or delete files in 
+production directories
+```
+
+## How It Works
+
+1. A tool call comes in (e.g., `grep_search_intent` with `target: "~/"`)
+2. Latch checks if any smart rules are in scope (matching upstream/tool)
+3. For each smart rule, the AI evaluates: "Does this tool call match the condition?"
+4. If matched, the rule's effect is applied (allow/deny/require approval)
+5. The AI's reasoning is logged for auditing
+
+## Writing Good Conditions
+
+### Be Specific
+
+```
+❌ "Block bad things"
+✅ "Block searches targeting sensitive files like .env, passwords, 
+   SSH keys, credentials, or configuration files containing secrets"
+```
+
+### Include Examples
+
+```
+❌ "Block sensitive operations"  
+✅ "Block operations that access sensitive paths such as ~/.ssh, 
+   ~/.aws, ~/.env, /etc/passwd, or any .env files"
+```
+
+### Describe Intent, Not Just Patterns
+
+```
+❌ "Block requests with 'password' in arguments"
+✅ "Block any operation that appears to be searching for, 
+   accessing, or extracting passwords or credentials"
+```
+
+## Scoping Smart Rules
+
+Smart rules can be scoped just like pattern rules:
+
+| Scope | Behavior |
+|-------|----------|
+| **Global** (no upstream/tool) | Evaluated for all tool calls |
+| **Upstream only** | Evaluated only for that upstream |
+| **Tool only** | Evaluated only for that specific tool |
+| **Upstream + Tool** | Most specific, evaluated only for that tool on that upstream |
+
+**Tip:** Start with broader rules and add specific overrides as needed.
+
+## Configuration
+
+### OpenAI API Key
+
+Smart rules use GPT-4o-mini for evaluation. Set `OPENAI_API_KEY` in your environment:
+
+```bash
+# In .env or docker-compose environment
+OPENAI_API_KEY=sk-...
+```
+
+### Fallback Behavior
+
+If `OPENAI_API_KEY` is not set, smart rules fall back to keyword matching:
+- Extracts keywords from your condition
+- Checks if tool arguments contain those keywords
+- Less accurate but still catches common cases
+
+## Performance
+
+- Smart rule evaluation adds ~200-500ms latency per rule
+- Rules are evaluated in parallel when multiple apply
+- Only rules in scope (matching upstream/tool) are evaluated
+- Consider using pattern rules for simple exact matches
+
+## Best Practices
+
+1. **Use smart rules for complex conditions** that are hard to express as patterns
+2. **Use pattern rules for exact matches** (faster, deterministic)
+3. **Scope rules narrowly** when possible to reduce evaluation overhead
+4. **Test your conditions** with representative tool calls before relying on them
+5. **Review the audit log** to see how rules are being evaluated
+
+## Examples by Use Case
+
+### Development Security
+
+```
+Block any operation that accesses or modifies files containing 
+API keys, database credentials, or authentication tokens
+```
+
+### Data Protection
+
+```
+Require approval for operations that could export, download, 
+or transmit customer data or personally identifiable information
+```
+
+### Infrastructure Safety
+
+```
+Deny shell commands that could stop services, delete containers, 
+or modify system configuration files
+```
+
+### Code Review
+
+```
+Require approval for git operations that push to main/master 
+or create pull requests
+```

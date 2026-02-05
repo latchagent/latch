@@ -1,0 +1,246 @@
+---
+title: Claude Desktop Setup
+description: Step-by-step guide to using Latch with Claude Desktop.
+---
+
+This guide walks you through connecting Claude Desktop to your MCP servers through Latch.
+
+## Prerequisites
+
+- Latch server running (via Docker or locally)
+- Claude Desktop installed
+- An MCP server you want to protect (or use the example below)
+
+## Step 1: Get Your API Key
+
+1. Open the Latch dashboard (http://localhost:3000 or your hosted URL)
+2. Create a workspace if you haven't already
+3. Go to **Settings** → **API Keys**
+4. Click **Create API Key** and copy it
+
+## Step 2: Create an Upstream
+
+An upstream represents the MCP server you want to protect.
+
+1. Go to **Upstreams** in your workspace
+2. Click **Create Upstream**
+3. Choose your transport type:
+   - **Stdio**: For MCP servers that run as local processes (most common)
+   - **HTTP**: For MCP servers that run as web services
+4. Give it a name (e.g., `filesystem`, `grep-server`, `my-mcp-server`)
+
+<Tip>
+The upstream name is used in your Claude Desktop config. Choose something descriptive but short.
+</Tip>
+
+## Step 3: Configure Claude Desktop
+
+Claude Desktop reads its MCP server configuration from:
+
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+### Using the Latch CLI Wrapper
+
+The Latch CLI wraps your MCP server command, routing all tool calls through Latch.
+
+```json
+{
+  "mcpServers": {
+    "my-server-via-latch": {
+      "command": "npx",
+      "args": [
+        "@latchagent/cli@latest",
+        "run",
+        "--api-key", "latch_...",
+        "--upstream", "my-mcp-server",
+        "--upstream-command", "npx",
+        "--upstream-args", "-y,@modelcontextprotocol/server-filesystem,/Users/me/allowed-dir"
+      ]
+    }
+  }
+}
+```
+
+**Breaking down the args:**
+
+| Argument | Description |
+|----------|-------------|
+| `@latchagent/cli@latest` | The Latch CLI package |
+| `run` | Subcommand to start wrapping |
+| `--api-key` | Your Latch API key |
+| `--upstream` | Name of the upstream in Latch |
+| `--upstream-command` | The command to run your MCP server |
+| `--upstream-args` | Args for the upstream, **comma-separated** |
+
+<Warning>
+**Important:** Arguments in `--upstream-args` must be comma-separated, not space-separated. This is because shell argument parsing can't handle spaces inside a single argument value.
+</Warning>
+
+### Example: Filesystem Server
+
+```json
+{
+  "mcpServers": {
+    "filesystem-via-latch": {
+      "command": "npx",
+      "args": [
+        "@latchagent/cli@latest",
+        "run",
+        "--api-key", "latch_abc123...",
+        "--upstream", "filesystem",
+        "--upstream-command", "npx",
+        "--upstream-args", "-y,@modelcontextprotocol/server-filesystem,/Users/me/documents"
+      ]
+    }
+  }
+}
+```
+
+### Example: Grep Server
+
+```json
+{
+  "mcpServers": {
+    "grep-via-latch": {
+      "command": "npx",
+      "args": [
+        "@latchagent/cli@latest",
+        "run",
+        "--api-key", "latch_abc123...",
+        "--upstream", "grep-server",
+        "--upstream-command", "npx",
+        "--upstream-args", "-y,@247arjun/mcp-grep"
+      ]
+    }
+  }
+}
+```
+
+## Step 4: Sync Tools
+
+After configuring Claude Desktop, sync the tools to Latch:
+
+```bash
+npx @latchagent/cli@latest tools-sync --api-key latch_... --upstream my-server
+```
+
+This registers all available tools from the upstream with Latch so you can create rules targeting specific tools.
+
+## Step 5: Restart Claude Desktop
+
+After editing the config file:
+
+1. Fully quit Claude Desktop (Cmd+Q, not just close the window)
+2. Reopen Claude Desktop
+3. You should see your server in Claude's MCP server list
+
+## Step 6: Create Your First Rule
+
+1. Go to **Rules** in the Latch dashboard
+2. Click **Create Rule**
+3. Create a simple test rule:
+   - **Name:** "Approve all external writes"
+   - **Effect:** Require Approval
+   - **Action Class:** External Write
+   - **Upstream:** (your upstream name)
+4. Save the rule
+
+## Step 7: Test It
+
+Ask Claude to do something that triggers your rule. For example, with a filesystem server:
+
+> "Create a file called test.txt with some content"
+
+You should see:
+1. The request appears in the Latch dashboard
+2. If it requires approval, you'll see a notification (or approve in dashboard)
+3. After approval, Claude completes the action
+
+## Troubleshooting
+
+### Server Not Appearing in Claude
+
+**Check the config file path:**
+```bash
+cat ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+**Verify JSON is valid:**
+```bash
+npx jsonlint ~/Library/Application\ Support/Claude/claude_desktop_config.json
+```
+
+**Common mistakes:**
+- Missing comma between servers
+- Wrong path to config file
+- Server name contains invalid characters
+
+### "Connection refused" Errors
+
+Make sure Latch is running and accessible:
+```bash
+curl http://localhost:3000/health
+```
+
+If using Docker:
+```bash
+docker compose ps
+docker compose logs latch
+```
+
+### Node.js Version Issues
+
+Claude Desktop bundles its own Node.js, but uses your system's npx. If you see errors like:
+- `TypeError: args.at is not a function`
+- `SyntaxError: node:fs/promises` issues
+
+**Solution:** Ensure your default Node.js is v18.4.0 or higher:
+```bash
+node --version  # Should be v18.4.0+
+```
+
+If using nvm:
+```bash
+nvm use 22
+nvm alias default 22
+```
+
+<Warning>
+If you have old Node versions in `~/.nvm/versions/node/`, Claude Desktop might find them. Remove versions older than v18.4.0 to prevent conflicts.
+</Warning>
+
+### CLI Connection Issues
+
+Test the CLI connection manually:
+```bash
+npx @latchagent/cli@latest run \
+  --api-key latch_... \
+  --upstream test \
+  --upstream-command echo \
+  --upstream-args hello
+```
+
+### Tools Not Showing Up
+
+After adding an upstream, sync its tools:
+```bash
+npx @latchagent/cli@latest tools-sync --api-key latch_... --upstream my-server
+```
+
+Check the Tools page in the dashboard to verify tools were discovered.
+
+## Security Best Practices
+
+1. **Use specific API keys** for each client/use case
+2. **Start with "Require Approval"** rules and relax as you trust the setup
+3. **Enable Telegram notifications** for real-time alerts
+4. **Review the audit log** regularly to understand agent behavior
+5. **Use smart rules** for nuanced policies like "block searches for credentials"
+
+## Next Steps
+
+- [Create policy rules](/rules) to control what Claude can do
+- [Set up Telegram notifications](/telegram) for mobile approvals
+- [Configure smart rules](/smart-rules) for AI-powered policies

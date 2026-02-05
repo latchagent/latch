@@ -1,51 +1,164 @@
 ---
-title: Quickstart (Docker)
-description: Run Latch locally with Docker Compose and wrap an MCP server.
+title: Quickstart
+description: Get Latch running in 5 minutes with Docker Compose.
 ---
 
-## 1) Start Latch
+This guide gets you from zero to a working Latch setup protecting an MCP server.
+
+## Prerequisites
+
+- Docker and Docker Compose installed
+- Node.js 18.4.0+ (for the CLI)
+- An MCP client (Claude Desktop, Cursor, etc.) — or just test with the CLI
+
+## Step 1: Start Latch
 
 ```bash
 git clone https://github.com/latchhq/latch
 cd latch
-docker compose up
+docker compose up -d
 ```
 
-Open the dashboard at `http://localhost:3000`.
+This starts:
+- **Latch server** on port 3000 (dashboard and API)
+- **PostgreSQL** for data storage
+- **Redis** for queuing
 
-## 2) Create a workspace + upstream + agent
+<Tip>
+Use `docker compose up` (without `-d`) to see logs in your terminal. Add `-d` to run in the background.
+</Tip>
 
-1. Register an account in the dashboard.
-2. Create an upstream (for stdio MCP servers the name is just a label).
-3. Create an agent and copy the **agent key**.
+## Step 2: Create Your Account
 
-You’ll need these for the CLI:
+1. Open [http://localhost:3000](http://localhost:3000)
+2. Click **Register** and create an account
+3. You'll be taken to your first workspace
 
-- Workspace ID
-- Upstream ID
-- Agent key
+<Frame>
+  <img src="/docs/assets/dashboard.png" alt="Latch Dashboard" />
+</Frame>
 
-## 3) Install the CLI
+## Step 3: Create an API Key
+
+1. Go to **Settings** → **API Keys**
+2. Click **Create API Key**
+3. Give it a name (e.g., "local-dev")
+4. Copy the key — you'll need it for the CLI
+
+<Warning>
+Keep your API key secret. Anyone with the key can route traffic through your Latch instance.
+</Warning>
+
+## Step 4: Create an Upstream
+
+An upstream represents the MCP server you want to protect.
+
+1. Go to **Upstreams** in the sidebar
+2. Click **Create Upstream**
+3. Choose **Stdio** (for local MCP servers)
+4. Name it something descriptive (e.g., `filesystem`)
+
+## Step 5: Sync Tools
+
+Use the CLI to discover and register the tools from your MCP server:
 
 ```bash
-npm install -g @latchagent/cli
+npx @latchagent/cli@latest tools-sync \
+  --api-key "latch_YOUR_KEY" \
+  --upstream "filesystem" \
+  --upstream-command "npx" \
+  --upstream-args "-y,@modelcontextprotocol/server-filesystem,/tmp"
 ```
 
-## 4) Configure the CLI
+<Note>
+Arguments in `--upstream-args` must be **comma-separated**, not space-separated.
+</Note>
+
+Check the **Tools** page in the dashboard — you should see the discovered tools.
+
+## Step 6: Create a Rule
+
+Let's create a simple rule to require approval for file writes.
+
+1. Go to **Rules** in the sidebar
+2. Click **Create Rule**
+3. Configure:
+   - **Name:** "Approve file writes"
+   - **Effect:** Require Approval
+   - **Action Class:** External Write
+   - **Upstream:** filesystem
+4. Click **Save**
+
+<Frame>
+  <img src="/docs/assets/policies.png" alt="Policy Rules" />
+</Frame>
+
+## Step 7: Test It
+
+Run an MCP server through Latch and try a write operation:
 
 ```bash
-latch init
+npx @latchagent/cli@latest run \
+  --api-key "latch_YOUR_KEY" \
+  --upstream "filesystem" \
+  --upstream-command "npx" \
+  --upstream-args "-y,@modelcontextprotocol/server-filesystem,/tmp"
 ```
 
-This writes a config file to `~/.latch/config.json`.
+This wraps the filesystem MCP server. When a tool call comes in that triggers your rule, you'll see it in the dashboard.
 
-## 5) Wrap an MCP server
+### Testing with Claude Desktop
 
-Example: GitHub MCP server:
+See the [Claude Desktop Setup](/claude-desktop) guide to configure Claude to use your protected MCP server.
 
+### Testing with the Dashboard
+
+1. Go to **Audit Log** to see incoming requests
+2. If a request requires approval, you'll see it highlighted
+3. Click to approve or deny
+
+<Frame>
+  <img src="/docs/assets/audit-logs.png" alt="Audit Log" />
+</Frame>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Claude Desktop Setup" icon="desktop" href="/claude-desktop">
+    Connect Claude Desktop to MCP servers through Latch
+  </Card>
+  <Card title="Smart Rules" icon="brain" href="/smart-rules">
+    Create AI-powered rules in plain English
+  </Card>
+  <Card title="Telegram Notifications" icon="bell" href="/telegram">
+    Get mobile alerts and approve requests on the go
+  </Card>
+  <Card title="Configuration Reference" icon="gear" href="/configuration">
+    Environment variables and advanced settings
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+### Dashboard won't load
+
+Check if containers are running:
 ```bash
-latch run --upstream-command "npx" --upstream-args "-y,@modelcontextprotocol/server-github"
+docker compose ps
 ```
 
-If an action requires approval, you’ll see an `APPROVAL_REQUIRED` error. Approve it in the dashboard and then retry with the provided approval token (your agent/tooling typically handles the retry).
+View logs:
+```bash
+docker compose logs latch
+```
 
+### CLI can't connect
+
+Verify Latch is running:
+```bash
+curl http://localhost:3000/health
+```
+
+### Tools not appearing
+
+Make sure you ran `tools-sync` after creating the upstream. The sync command discovers available tools and registers them with Latch.

@@ -1,53 +1,124 @@
 ---
-title: Latch
-description: Guard proxy for MCP servers with deterministic policies and approvals.
+title: Latch - Security Guardrails for AI Agents
+description: Open-source guard proxy for MCP servers. Stop your AI agent before it does something you'll regret.
 ---
 
-Latch is an open-source guard proxy for MCP (Model Context Protocol) servers. It sits between your AI agent and its tools, enforcing deterministic policies:
+## Introduction
 
-- Safe actions (reads, internal writes) pass through automatically
-- Risky actions (shell commands, external sends) require approval
-- Forbidden actions (payments, destructive ops) can be blocked entirely
+AI agents are incredibly powerful. They can read your files, execute shell commands, send emails, query databases, and make API calls on your behalf.
 
-Repo: [Latch Open Source](https://github.com/latchagent/latch)
+But what happens when your agent decides to:
+- Search for passwords in your home directory?
+- Delete files it thinks are "temporary"?
+- Send confidential data to the wrong recipient?
+- Run a shell command that nukes your database?
 
-## Core pages (start here)
+**You need a human in the loop. You need Latch.**
 
-These three pages are the heart of Latch. If you only look at a few screens, make it these.
+## What is Latch?
 
-### Dashboard
+Latch is an open-source guard proxy that sits between your AI agent and its tools. Every tool call passes through Latch, which enforces your security policies:
 
-The dashboard is where you create workspaces, agents, and upstreams, and see the system working end-to-end.
+| Action | What Happens |
+|--------|--------------|
+| ✅ Safe operations | Pass through automatically (reads, internal writes) |
+| ⚠️ Risky operations | Require your approval (shell commands, external sends) |
+| 🛑 Forbidden operations | Blocked entirely (payments, destructive actions) |
+| 🤖 Smart rules | AI evaluates natural language policies in real-time |
+
+## Quick Example
+
+```bash
+# Without Latch
+Agent: "Search for API keys in ~/"
+→ 💥 Agent finds and potentially leaks your secrets
+
+# With Latch
+Agent: "Search for API keys in ~/"  
+→ 🛑 Blocked by smart rule: "Searches targeting sensitive files"
+→ You see it in the audit log
+→ Crisis averted
+```
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Policy Engine" icon="shield">
+    Rules based on tool name, action class, domain, and recipient. Most-specific rule wins.
+  </Card>
+  <Card title="Smart Rules" icon="sparkles">
+    Define policies in plain English. An AI evaluates each tool call against your conditions.
+  </Card>
+  <Card title="Approval Workflow" icon="check">
+    Risky actions pause for your approval. Single-use tokens or time-limited leases.
+  </Card>
+  <Card title="Telegram Notifications" icon="bell">
+    Get notified on your phone. Approve or deny with one tap.
+  </Card>
+  <Card title="Audit Log" icon="scroll">
+    Full history of every tool call, decision, and redacted arguments.
+  </Card>
+  <Card title="Self-Hosted" icon="server">
+    Run on your infrastructure. Your data never leaves your control.
+  </Card>
+</CardGroup>
+
+## Works With
+
+Latch works with any MCP (Model Context Protocol) compatible client and server:
+
+**Clients:**
+- Claude Desktop
+- Cursor
+- Any MCP-compatible agent
+
+**Servers (examples):**
+- Filesystem access
+- GitHub operations
+- Database queries
+- Shell commands
+- Email/Slack
+- Any custom MCP server
+
+## See It In Action
+
+### The Dashboard
+
+Create workspaces, manage upstreams, and monitor everything in one place.
 
 ![Latch dashboard](/docs/assets/dashboard.png)
 
-### Policies
+### Policy Rules
 
-Policies are the rules that decide whether a tool call is **allowed**, **denied**, or **requires approval**.
+Define what's allowed, what's blocked, and what needs approval.
 
 ![Latch policies](/docs/assets/policies.png)
 
-### Audit log
+### Audit Log
 
-The audit log is the paper trail: every request, the decision, and redacted arguments so you can review what happened later.
+Every request logged with the decision and redacted arguments.
 
 ![Latch audit log](/docs/assets/audit-logs.png)
 
-## Other features
+## Get Started in 5 Minutes
 
-- **Deterministic enforcement**: decisions are rules-based (no “LLM deciding permissions”).
-- **Action classes**: tool calls are classified into `read`, `write`, `send`, `execute`, `submit`, `transfer_value`.
-- **Approvals**: risky actions can be approved with single-use tokens (and optional time-limited leases).
-- **Telegram integration (optional)**: get approval notifications on your phone and approve/deny quickly.
-- **Redaction**: sensitive fields are redacted before being stored/logged.
-- **Self-hosted**: run locally with Docker; keep your data on your own infrastructure.
-- **CLI proxy**: wrap any upstream MCP server without changing your agent.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="./quickstart">
+    Run Latch locally with Docker and wrap your first MCP server.
+  </Card>
+  <Card title="Claude Desktop Setup" icon="message-bot" href="./claude-desktop">
+    Step-by-step guide to integrate Latch with Claude Desktop.
+  </Card>
+</CardGroup>
 
-## Quickstart
+## Open Source
 
-Start here:
+Latch is fully open source under the MIT license. 
 
-- [Quickstart (Docker)](./quickstart.mdx)
-- [Telegram integration](./telegram.mdx)
-- [CLI](./cli.mdx)
+- [GitHub Repository](https://github.com/latchhq/latch)
+- [Report Issues](https://github.com/latchhq/latch/issues)
+- [Contributing Guide](https://github.com/latchhq/latch/blob/main/CONTRIBUTING.md)
 
+---
+
+*Built for developers who want AI agents they can actually trust.*
