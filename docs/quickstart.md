@@ -25,7 +25,7 @@ You’ll need these for the CLI:
 ## 3) Install the CLI
 
 ```bash
-npm install -g @latch/cli
+npm install -g @latchagent/cli
 ```
 
 ## 4) Configure the CLI

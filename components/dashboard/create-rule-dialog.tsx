@@ -27,6 +27,7 @@ import { toast } from "@/hooks/use-toast";
 interface Upstream {
   id: string;
   name: string;
+  tools?: unknown[] | null;
 }
 
 interface CreateRuleDialogProps {
@@ -34,7 +35,7 @@ interface CreateRuleDialogProps {
   upstreams?: Upstream[];
 }
 
-export function CreateRuleDialog({ workspaceId }: CreateRuleDialogProps) {
+export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,10 +43,24 @@ export function CreateRuleDialog({ workspaceId }: CreateRuleDialogProps) {
   const [name, setName] = useState("");
   const [effect, setEffect] = useState<string>("allow");
   const [actionClass, setActionClass] = useState<string>("any");
+  const [upstreamId, setUpstreamId] = useState<string>("any");
   const [toolName, setToolName] = useState("");
   const [domainMatch, setDomainMatch] = useState("");
   const [domainMatchType, setDomainMatchType] = useState<string>("exact");
-  const [priority, setPriority] = useState("50");
+
+  const selectedUpstream =
+    upstreamId === "any" ? undefined : upstreams?.find((u) => u.id === upstreamId);
+
+  const toolOptions: string[] = (() => {
+    if (!selectedUpstream?.tools || !Array.isArray(selectedUpstream.tools)) return [];
+    const names: string[] = [];
+    for (const t of selectedUpstream.tools) {
+      if (!t || typeof t !== "object") continue;
+      const rec = t as Record<string, unknown>;
+      if (typeof rec.name === "string") names.push(rec.name);
+    }
+    return names.sort((a, b) => a.localeCompare(b));
+  })();
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -58,10 +73,10 @@ export function CreateRuleDialog({ workspaceId }: CreateRuleDialogProps) {
           name: name || undefined,
           effect,
           actionClass,
+          upstreamId: upstreamId === "any" ? undefined : upstreamId,
           toolName: toolName || undefined,
           domainMatch: domainMatch || undefined,
           domainMatchType: domainMatch ? domainMatchType : undefined,
-          priority: parseInt(priority, 10),
         }),
       });
 
@@ -81,9 +96,9 @@ export function CreateRuleDialog({ workspaceId }: CreateRuleDialogProps) {
       setName("");
       setEffect("allow");
       setActionClass("any");
+      setUpstreamId("any");
       setToolName("");
       setDomainMatch("");
-      setPriority("50");
     } catch (error) {
       toast({
         title: "Error",
@@ -156,14 +171,47 @@ export function CreateRuleDialog({ workspaceId }: CreateRuleDialogProps) {
           </div>
 
           <div className="grid gap-2">
+            <Label>Upstream (optional)</Label>
+            <Select value={upstreamId} onValueChange={setUpstreamId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any upstream</SelectItem>
+                {(upstreams || []).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
             <Label htmlFor="toolName">Tool Name (optional)</Label>
-            <Input
-              id="toolName"
-              placeholder="e.g., github_create_pr"
-              value={toolName}
-              onChange={(e) => setToolName(e.target.value)}
-              className="font-mono"
-            />
+            {toolOptions.length > 0 ? (
+              <Select value={toolName || "any"} onValueChange={(v) => setToolName(v === "any" ? "" : v)}>
+                <SelectTrigger className="font-mono">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any tool</SelectItem>
+                  {toolOptions.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="toolName"
+                placeholder="e.g., github_create_pr"
+                value={toolName}
+                onChange={(e) => setToolName(e.target.value)}
+                className="font-mono"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-4">
@@ -191,17 +239,6 @@ export function CreateRuleDialog({ workspaceId }: CreateRuleDialogProps) {
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="priority">Priority (0-100, higher = checked first)</Label>
-            <Input
-              id="priority"
-              type="number"
-              min="0"
-              max="100"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-            />
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>

@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { runBridge } from "./bridge.js";
 import { loadConfig, mergeWithEnv } from "./config.js";
 import { runInit } from "./init.js";
+import { runSyncTools } from "./sync-tools.js";
 
 const program = new Command();
 const config = mergeWithEnv(loadConfig());
@@ -54,6 +55,49 @@ program
       offline: options.offline,
       waitForApproval: options.waitForApproval,
       approvalTimeoutMs: parseInt(options.approvalTimeout) * 1000,
+    });
+  });
+
+program
+  .command("sync-tools")
+  .description("Run an upstream once and sync its tools to the dashboard")
+  .requiredOption(
+    "--upstream-command <command>",
+    "Command to spawn the upstream MCP server"
+  )
+  .option(
+    "--upstream-args <args>",
+    "Comma-separated arguments for the upstream command",
+    ""
+  )
+  .option("--cloud-url <url>", "Latch dashboard URL", config.cloud_url)
+  .option("--workspace <id>", "Workspace ID", config.workspace)
+  .option("--agent-key <key>", "Agent key for authentication", config.agent_key)
+  .option("--upstream-id <id>", "Upstream ID", config.upstream_id)
+  .option("--timeout <seconds>", "Timeout for sync run", "20")
+  .action(async (options) => {
+    if (!options.workspace) {
+      console.error("Error: --workspace is required (or set LATCH_WORKSPACE)");
+      process.exit(1);
+    }
+    if (!options.agentKey) {
+      console.error("Error: --agent-key is required (or set LATCH_AGENT_KEY)");
+      process.exit(1);
+    }
+    if (!options.upstreamId) {
+      console.error("Error: --upstream-id is required (or set LATCH_UPSTREAM_ID)");
+      process.exit(1);
+    }
+
+    const upstreamArgs = options.upstreamArgs ? options.upstreamArgs.split(",") : [];
+    await runSyncTools({
+      upstreamCommand: options.upstreamCommand,
+      upstreamArgs,
+      cloudUrl: options.cloudUrl,
+      workspaceId: options.workspace,
+      agentKey: options.agentKey,
+      upstreamId: options.upstreamId,
+      timeoutMs: parseInt(options.timeout, 10) * 1000,
     });
   });
 

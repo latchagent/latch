@@ -123,7 +123,7 @@ export default async function RulesPage() {
             <CardHeader>
               <CardTitle className="text-lg">Custom Policy Rules</CardTitle>
               <CardDescription>
-                Rules are evaluated in priority order. Higher priority rules are checked first.
+                Rules are evaluated by specificity (tool &gt; upstream &gt; workspace). Ties are broken by newest rule.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -135,10 +135,10 @@ export default async function RulesPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-16">Priority</TableHead>
                       <TableHead>Name</TableHead>
                       <TableHead>Effect</TableHead>
                       <TableHead>Action Class</TableHead>
+                      <TableHead>Upstream</TableHead>
                       <TableHead>Tool</TableHead>
                       <TableHead>Domain</TableHead>
                       <TableHead className="w-28">Actions</TableHead>
@@ -147,13 +147,15 @@ export default async function RulesPage() {
                   <TableBody>
                     {rules.map((rule) => (
                       <TableRow key={rule.id}>
-                        <TableCell className="font-mono">{rule.priority}</TableCell>
                         <TableCell>{rule.name || "—"}</TableCell>
                         <TableCell>
                           <EffectBadge effect={rule.effect} />
                         </TableCell>
                         <TableCell className="uppercase text-xs font-medium">
                           {rule.actionClass}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {rule.upstreamId ? upstreamsList.find((u) => u.id === rule.upstreamId)?.name || "—" : "*"}
                         </TableCell>
                         <TableCell className="font-mono text-xs">
                           {rule.toolName || "*"}

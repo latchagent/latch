@@ -97,6 +97,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (upstream.transport !== "http" || !upstream.baseUrl) {
+      return NextResponse.json(
+        {
+          jsonrpc: "2.0",
+          id: null,
+          error: {
+            code: -32602,
+            message: `Upstream is not HTTP-configured: ${upstreamName}`,
+          },
+        },
+        { status: 400 }
+      );
+    }
+
     // Parse MCP request
     const body = await request.json();
 

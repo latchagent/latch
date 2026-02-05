@@ -18,7 +18,7 @@ export * from "./auth-schema";
 // Enums
 export const workspaceRoleEnum = pgEnum("workspace_role", ["owner", "member"]);
 
-export const transportEnum = pgEnum("transport", ["http"]);
+export const transportEnum = pgEnum("transport", ["http", "stdio"]);
 
 export const authTypeEnum = pgEnum("auth_type", ["none", "bearer", "header"]);
 
@@ -138,7 +138,23 @@ export const upstreams = pgTable(
       .notNull(),
     name: text("name").notNull(),
     transport: transportEnum("transport").notNull().default("http"),
-    baseUrl: text("base_url").notNull(),
+    // HTTP transport
+    baseUrl: text("base_url"),
+    // Optional static headers for HTTP upstreams (auth/API keys/etc).
+    // Note: treated as a secret; UI should not display values after save.
+    headers: jsonb("headers").$type<Record<string, string>>(),
+
+    // Stdio transport (command/args to spawn locally via Latch CLI / runner)
+    stdioCommand: text("stdio_command"),
+    stdioArgs: jsonb("stdio_args").$type<string[]>(),
+    stdioEnv: jsonb("stdio_env").$type<Record<string, string>>(),
+    stdioCwd: text("stdio_cwd"),
+
+    // Discovered tool catalog (from tools/list)
+    tools: jsonb("tools").$type<unknown[]>(),
+    toolsSyncedAt: timestamp("tools_synced_at", { withTimezone: true }),
+    toolsSyncError: text("tools_sync_error"),
+
     authType: authTypeEnum("auth_type").notNull().default("none"),
     authValue: text("auth_value"),
     createdAt: timestamp("created_at", { withTimezone: true })

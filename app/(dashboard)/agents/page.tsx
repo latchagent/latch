@@ -16,6 +16,7 @@ import {
 import { Bot, Key, Clock } from "lucide-react";
 import { CreateAgentDialog } from "@/components/dashboard/create-agent-dialog";
 import { CopyableId } from "@/components/ui/copy-button";
+import { AgentActions } from "@/components/dashboard/agent-actions";
 
 export default async function AgentsPage() {
   const session = await getServerSession();
@@ -67,6 +68,7 @@ export default async function AgentsPage() {
                   <TableHead>ID</TableHead>
                   <TableHead>Client Key</TableHead>
                   <TableHead>Last Seen</TableHead>
+                  <TableHead className="w-12"></TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
@@ -96,6 +98,9 @@ export default async function AgentsPage() {
                       ) : (
                         <span className="text-xs text-muted-foreground">Never</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <AgentActions agentId={agent.id} />
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {new Date(agent.createdAt).toLocaleDateString()}

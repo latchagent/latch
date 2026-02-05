@@ -11,7 +11,7 @@
     "dev": "tsx src/run-scenarios.ts"
   },
   "dependencies": {
-    "@latch/shared": "*"
+    "@latchagent/shared": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20",

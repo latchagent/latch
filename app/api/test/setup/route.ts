@@ -9,7 +9,7 @@ import {
 } from "@/lib/db/schema";
 import { user } from "@/lib/db/auth-schema";
 import { eq } from "drizzle-orm";
-import { generateSecureToken, hashToken } from "@latch/shared";
+import { generateSecureToken, hashToken } from "@latchagent/shared";
 
 /**
  * POST /api/test/setup

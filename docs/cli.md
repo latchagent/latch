@@ -3,7 +3,7 @@
 ## Install
 
 ```bash
-npm install -g @latch/cli
+npm install -g @latchagent/cli
 ```
 
 ## Configure

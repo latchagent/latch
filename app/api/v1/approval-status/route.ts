@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { approvalRequests, approvalTokens, agents } from "@/lib/db/schema";
 import { eq, and, isNull, isNotNull } from "drizzle-orm";
-import { hashToken } from "@latch/shared";
+import { hashToken } from "@latchagent/shared";
 
 /**
  * GET /api/v1/approval-status?approval_request_id=xxx

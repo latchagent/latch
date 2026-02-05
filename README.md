@@ -25,7 +25,7 @@ Dashboard: http://localhost:3000
 ### Install CLI
 
 ```bash
-npm install -g @latch/cli
+npm install -g @latchagent/cli
 latch init
 ```
 

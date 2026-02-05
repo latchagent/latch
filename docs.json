@@ -14,7 +14,7 @@
       },
       {
         "group": "Guides",
-        "pages": ["docs/telegram"]
+        "pages": ["docs/upstreams", "docs/telegram"]
       },
       {
         "group": "Reference",

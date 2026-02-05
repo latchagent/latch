@@ -1,4 +1,4 @@
-import type { AuthorizeRequest, AuthorizeResponse } from "@latch/shared";
+import type { AuthorizeRequest, AuthorizeResponse } from "@latchagent/shared";
 export interface CloudClientOptions {
     baseUrl: string;
     workspaceId: string;
@@ -23,6 +23,10 @@ export declare class CloudClient {
      * - Retry with token: validates and consumes token atomically
      */
     authorize(request: AuthorizeRequest): Promise<AuthorizeResponse>;
+    /**
+     * Sync discovered tools to the cloud (for policy authoring UI).
+     */
+    syncTools(tools: unknown[]): Promise<void>;
     /**
      * Health check
      */

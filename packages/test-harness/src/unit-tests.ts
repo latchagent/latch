@@ -12,7 +12,7 @@ import {
   computeRequestHash,
   redactArgs,
   getDefaultDecision,
-} from "@latch/shared";
+} from "@latchagent/shared";
 
 // Simple test framework
 let passed = 0;

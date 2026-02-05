@@ -1,4 +1,4 @@
-import type { AuthorizeRequest, AuthorizeResponse } from "@latch/shared";
+import type { AuthorizeRequest, AuthorizeResponse } from "@latchagent/shared";
 
 export interface CloudClientOptions {
   baseUrl: string;
@@ -49,6 +49,32 @@ export class CloudClient {
     }
 
     return response.json() as Promise<AuthorizeResponse>;
+  }
+
+  /**
+   * Sync discovered tools to the cloud (for policy authoring UI).
+   */
+  async syncTools(tools: unknown[]): Promise<void> {
+    const url = `${this.baseUrl}/api/v1/upstreams/tools`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Latch-Agent-Key": this.agentKey,
+      },
+      body: JSON.stringify({
+        workspace_id: this.workspaceId,
+        agent_key: this.agentKey,
+        upstream_id: this.upstreamId,
+        tools,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      throw new Error(`Tool sync failed: ${response.status} ${errorText}`);
+    }
   }
 
   /**

@@ -17,9 +17,9 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "npx tsx scripts/seed.ts",
     "telegram:setup": "npx tsx scripts/setup-telegram.ts",
-    "cli:dev": "npm run dev --workspace=@latch/cli",
-    "cli:build": "npm run build --workspace=@latch/cli",
-    "test": "npm run test --workspace=@latch/test-harness",
+    "cli:dev": "npm run dev --workspace=@latchagent/cli",
+    "cli:build": "npm run build --workspace=@latchagent/cli",
+    "test": "npm run test --workspace=@latchagent/test-harness",
     "test:unit": "npx tsx packages/test-harness/src/unit-tests.ts",
     "test:scenarios": "npx tsx packages/test-harness/src/run-scenarios.ts",
     "test:setup": "curl -X POST http://localhost:3000/api/test/setup -H 'Content-Type: application/json' -d '{}'"

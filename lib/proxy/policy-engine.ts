@@ -26,6 +26,35 @@ export interface PolicyDecision {
   matchedLease?: PolicyLease;
 }
 
+type SpecificityKey = [number, number, number, number, number];
+
+function specificityKeyForRule(rule: PolicyRule): SpecificityKey {
+  return [
+    rule.toolName ? 1 : 0,
+    rule.upstreamId ? 1 : 0,
+    rule.domainMatch ? 1 : 0,
+    rule.recipientMatch ? 1 : 0,
+    rule.actionClass !== "any" ? 1 : 0,
+  ];
+}
+
+function specificityKeyForLease(lease: PolicyLease): SpecificityKey {
+  return [
+    lease.toolName ? 1 : 0,
+    lease.upstreamId ? 1 : 0,
+    lease.domainMatch ? 1 : 0,
+    0,
+    1, // leases always constrain actionClass
+  ];
+}
+
+function compareSpecificity(a: SpecificityKey, b: SpecificityKey): number {
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return b[i] - a[i]; // desc
+  }
+  return 0;
+}
+
 /**
  * Check if a domain matches a pattern
  */
@@ -112,22 +141,16 @@ function leaseMatches(lease: PolicyLease, ctx: PolicyContext): boolean {
 
 /**
  * Evaluate policy for a tool call
- *
- * Evaluation order:
- * 1) explicit deny rules
- * 2) active allow leases
- * 3) explicit allow rules
- * 4) defaults based on action_class
  */
 export async function evaluatePolicy(ctx: PolicyContext): Promise<PolicyDecision> {
-  // Fetch all enabled rules for the workspace, ordered by priority
+  // Fetch all enabled rules for the workspace
   const rules = await db
     .select()
     .from(policyRules)
     .where(
       and(eq(policyRules.workspaceId, ctx.workspaceId), eq(policyRules.enabled, true))
     )
-    .orderBy(policyRules.priority);
+    .orderBy(policyRules.createdAt);
 
   // Fetch active leases for the workspace
   const leases = await db
@@ -140,48 +163,66 @@ export async function evaluatePolicy(ctx: PolicyContext): Promise<PolicyDecision
       )
     );
 
-  // 1) Check explicit deny rules first
-  for (const rule of rules) {
-    if (rule.effect === "deny" && ruleMatches(rule, ctx)) {
+  // Evaluate matching rules/leases with "most-specific wins" precedence:
+  // tool > upstream > workspace, ties broken by newest createdAt.
+  const matchingRules = rules.filter((r) => ruleMatches(r, ctx));
+  const matchingLeases = leases.filter((l) => leaseMatches(l, ctx));
+
+  const candidates: Array<
+    | { kind: "rule"; rule: PolicyRule; key: SpecificityKey; createdAt: Date }
+    | { kind: "lease"; lease: PolicyLease; key: SpecificityKey; createdAt: Date }
+  > = [
+    ...matchingRules.map((rule) => ({
+      kind: "rule" as const,
+      rule,
+      key: specificityKeyForRule(rule),
+      createdAt: new Date(rule.createdAt),
+    })),
+    ...matchingLeases.map((lease) => ({
+      kind: "lease" as const,
+      lease,
+      key: specificityKeyForLease(lease),
+      createdAt: new Date(lease.createdAt),
+    })),
+  ];
+
+  candidates.sort((a, b) => {
+    const spec = compareSpecificity(a.key, b.key);
+    if (spec !== 0) return spec;
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+
+  const winner = candidates[0];
+  if (winner) {
+    if (winner.kind === "lease") {
+      return {
+        decision: "allowed",
+        reason: `Allowed by active lease: ${winner.lease.id}`,
+        matchedLease: winner.lease,
+      };
+    }
+
+    if (winner.rule.effect === "allow") {
+      return {
+        decision: "allowed",
+        reason: `Allowed by policy rule: ${winner.rule.id}`,
+        matchedRule: winner.rule,
+      };
+    }
+
+    if (winner.rule.effect === "deny") {
       return {
         decision: "denied",
-        reason: `Denied by policy rule: ${rule.id}`,
-        matchedRule: rule,
+        reason: `Denied by policy rule: ${winner.rule.id}`,
+        matchedRule: winner.rule,
       };
     }
-  }
 
-  // 2) Check active allow leases
-  for (const lease of leases) {
-    if (leaseMatches(lease, ctx)) {
-      return {
-        decision: "allowed",
-        reason: `Allowed by active lease: ${lease.id}`,
-        matchedLease: lease,
-      };
-    }
-  }
-
-  // 3) Check explicit allow rules
-  for (const rule of rules) {
-    if (rule.effect === "allow" && ruleMatches(rule, ctx)) {
-      return {
-        decision: "allowed",
-        reason: `Allowed by policy rule: ${rule.id}`,
-        matchedRule: rule,
-      };
-    }
-  }
-
-  // 4) Check require_approval rules
-  for (const rule of rules) {
-    if (rule.effect === "require_approval" && ruleMatches(rule, ctx)) {
-      return {
-        decision: "approval_required",
-        reason: `Approval required by policy rule: ${rule.id}`,
-        matchedRule: rule,
-      };
-    }
+    return {
+      decision: "approval_required",
+      reason: `Approval required by policy rule: ${winner.rule.id}`,
+      matchedRule: winner.rule,
+    };
   }
 
   // 5) Fall back to defaults based on action class

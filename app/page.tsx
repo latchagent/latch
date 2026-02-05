@@ -63,7 +63,7 @@ docker compose up --build`}</code>
         <div className="mt-6 rounded-2xl border border-[#e5e5e5] dark:border-[#262626] bg-white dark:bg-[#111] p-6">
           <h2 className="text-lg font-medium">Getting started (CLI)</h2>
           <pre className="mt-4 overflow-x-auto rounded-lg bg-[#0a0a0a] text-white p-4 text-xs">
-            <code>{`npm install -g @latch/cli
+            <code>{`npm install -g @latchagent/cli
 latch init
 latch run --upstream-command "npx" --upstream-args "-y,@modelcontextprotocol/server-github"`}</code>
           </pre>

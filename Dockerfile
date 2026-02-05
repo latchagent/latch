@@ -18,7 +18,7 @@ RUN npm ci
 COPY . .
 
 # Build shared packages first
-RUN npm run build -w @latch/shared
+RUN npm run build -w @latchagent/shared
 
 # Build the Next.js app
 RUN npm run build

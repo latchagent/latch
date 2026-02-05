@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { approvalRequests, approvalTokens, requests } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { generateSecureToken, hashToken } from "@latch/shared";
+import { generateSecureToken, hashToken } from "@latchagent/shared";
 
 /**
  * POST /api/test/approve

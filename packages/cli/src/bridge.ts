@@ -9,7 +9,7 @@ import {
   type MCPToolCallParams,
   type AuthorizeRequest,
   MCP_ERROR_CODES,
-} from "@latch/shared";
+} from "@latchagent/shared";
 import { CloudClient } from "./cloud-client.js";
 import { MessageFramer } from "./message-framer.js";
 
@@ -120,7 +120,7 @@ export async function runBridge(options: BridgeOptions): Promise<void> {
     const messages = upstreamFramer.push(chunk);
     for (const message of messages) {
       // Upstream messages can be notifications/responses; validate inside handler.
-      handleUpstreamMessage(message as MCPResponse, pendingRequests);
+      handleUpstreamMessage(message as MCPResponse, pendingRequests, cloud);
     }
   });
 
@@ -342,8 +342,24 @@ async function handleClientMessage(
  */
 function handleUpstreamMessage(
   message: MCPResponse,
-  pendingRequests: Map<string | number, { request: MCPRequest; forwarded: boolean }>
+  pendingRequests: Map<string | number, { request: MCPRequest; forwarded: boolean }>,
+  cloud: CloudClient | null
 ): void {
+  const pending = pendingRequests.get(message.id);
+
+  // Best-effort tool discovery sync: when the client lists tools, record them in the cloud
+  // so the dashboard can offer tool pickers for policy rules.
+  if (pending?.request.method === "tools/list" && cloud) {
+    const msgAny = message as unknown as Record<string, unknown>;
+    const result = msgAny.result as Record<string, unknown> | undefined;
+    const tools = result?.tools as unknown;
+    if (Array.isArray(tools)) {
+      cloud.syncTools(tools).catch((err) => {
+        console.error("[latch] Failed to sync tools:", err instanceof Error ? err.message : err);
+      });
+    }
+  }
+
   // Pass through all upstream messages to client
   sendToClient(message);
 

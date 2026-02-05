@@ -10,7 +10,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, gte, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { hashToken } from "@latch/shared";
+import { hashToken } from "@latchagent/shared";
 
 /**
  * POST /api/v1/authorize
@@ -305,38 +305,89 @@ function evaluatePolicy(
   rules: typeof policyRules.$inferSelect[],
   leases: typeof policyLeases.$inferSelect[]
 ): { decision: "allowed" | "denied" | "approval_required"; reason: string } {
-  // 1) Check explicit deny rules first
-  for (const rule of rules) {
-    if (rule.effect === "deny" && ruleMatches(rule, input)) {
-      return { decision: "denied", reason: `Denied by rule: ${rule.name || rule.id}` };
+  type SpecificityKey = [number, number, number, number, number];
+
+  const keyForRule = (rule: typeof policyRules.$inferSelect): SpecificityKey => [
+    rule.toolName ? 1 : 0,
+    rule.upstreamId ? 1 : 0,
+    rule.recipientMatch ? 1 : 0,
+    rule.domainMatch ? 1 : 0,
+    rule.actionClass !== "any" ? 1 : 0,
+  ];
+
+  const keyForLease = (lease: typeof policyLeases.$inferSelect): SpecificityKey => [
+    lease.toolName ? 1 : 0,
+    lease.upstreamId ? 1 : 0,
+    lease.recipientMatch ? 1 : 0,
+    lease.domainMatch ? 1 : 0,
+    1, // leases always constrain action class
+  ];
+
+  const compareKey = (a: SpecificityKey, b: SpecificityKey): number => {
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return b[i] - a[i]; // desc
     }
+    return 0;
+  };
+
+  // most-specific wins (tool > upstream > workspace); ties: newest createdAt
+  const matchingRules = rules.filter((r) => ruleMatches(r, input));
+  const matchingLeases = leases.filter((l) => leaseMatches(l, input));
+
+  const candidates: Array<
+    | {
+        kind: "rule";
+        key: SpecificityKey;
+        createdAt: Date;
+        rule: typeof policyRules.$inferSelect;
+      }
+    | {
+        kind: "lease";
+        key: SpecificityKey;
+        createdAt: Date;
+        lease: typeof policyLeases.$inferSelect;
+      }
+  > = [
+    ...matchingRules.map((rule) => ({
+      kind: "rule" as const,
+      key: keyForRule(rule),
+      createdAt: new Date(rule.createdAt),
+      rule,
+    })),
+    ...matchingLeases.map((lease) => ({
+      kind: "lease" as const,
+      key: keyForLease(lease),
+      createdAt: new Date(lease.createdAt),
+      lease,
+    })),
+  ];
+
+  candidates.sort((a, b) => {
+    const spec = compareKey(a.key, b.key);
+    if (spec !== 0) return spec;
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+
+  const winner = candidates[0];
+  if (winner) {
+    if (winner.kind === "lease") {
+      return { decision: "allowed", reason: `Allowed by lease: ${winner.lease.id}` };
+    }
+
+    if (winner.rule.effect === "allow") {
+      return { decision: "allowed", reason: `Allowed by rule: ${winner.rule.name || winner.rule.id}` };
+    }
+
+    if (winner.rule.effect === "deny") {
+      return { decision: "denied", reason: `Denied by rule: ${winner.rule.name || winner.rule.id}` };
+    }
+
+    return {
+      decision: "approval_required",
+      reason: `Approval required by rule: ${winner.rule.name || winner.rule.id}`,
+    };
   }
 
-  // 2) Check active leases
-  for (const lease of leases) {
-    if (leaseMatches(lease, input)) {
-      return { decision: "allowed", reason: `Allowed by lease: ${lease.id}` };
-    }
-  }
-
-  // 3) Check explicit allow rules
-  for (const rule of rules) {
-    if (rule.effect === "allow" && ruleMatches(rule, input)) {
-      return { decision: "allowed", reason: `Allowed by rule: ${rule.name || rule.id}` };
-    }
-  }
-
-  // 4) Check require_approval rules
-  for (const rule of rules) {
-    if (rule.effect === "require_approval" && ruleMatches(rule, input)) {
-      return {
-        decision: "approval_required",
-        reason: `Approval required by rule: ${rule.name || rule.id}`,
-      };
-    }
-  }
-
-  // 5) Fall back to defaults
   return getDefaultDecision(input);
 }
 

@@ -1,0 +1,77 @@
+---
+title: Upstreams (Import, Tools, Policies)
+description: Import MCP server configs, discover tools, and scope policies per upstream/tool.
+---
+
+## Import an MCP config
+
+Latch supports importing MCP server configs in the common `mcpServers` shape used by tools like Cursor and Claude Desktop:
+
+- **Stdio servers**: `{ "command": "...", "args": ["..."] }`
+- **HTTP servers**: `{ "url": "https://...", "headers": { ... } }`
+
+In the dashboard:
+
+- Go to **Upstreams**
+- Click **Import MCP config**
+- Paste your JSON and choose the server entry to import
+
+## Auth headers (HTTP)
+
+Many remote MCP servers require static auth headers (API keys or Bearer tokens). When you import an HTTP server config, Latch stores the `headers` on the upstream and uses them for:
+
+- tool discovery (`tools/list`)
+- forwarding requests (for HTTP upstreams)
+
+Header values are treated as secrets and are not shown again after saving.
+
+## Tool discovery
+
+To write per-tool policies, Latch needs to know which tools a server exposes.
+
+- **HTTP upstreams**: tool discovery runs automatically on save and you can re-run it via **Sync tools**.
+- **Stdio upstreams**: tool discovery happens when the upstream runs and someone calls `tools/list`.
+  - Most clients do this on connect.
+  - If you want to sync tools before writing rules, use the one-time CLI command from **Upstreams → Export → One-time tool sync (stdio)**.
+
+## Policies per upstream and tool
+
+Rules can be scoped at three levels:
+
+- **Workspace default**: applies to all upstreams/tools
+- **Upstream**: applies to one upstream
+- **Tool**: applies to one tool within one upstream
+
+**Precedence**:
+
+- Most-specific wins: tool &gt; upstream &gt; workspace
+- Ties are broken by newest rule
+
+In the dashboard, go to **Policy Rules** and create a rule with:
+
+- an optional **Upstream**
+- an optional **Tool** (dropdown if tools are discovered)
+
+## Export client configs
+
+On the **Upstreams** page, click **Export** on an upstream row.
+
+- **Stdio** upstreams export a config that runs `@latchagent/cli` as the MCP server and spawns the upstream command/args.
+- **HTTP** upstreams export a URL config pointing at Latch’s proxy endpoint (requires clients that support MCP over HTTP POST).
+
+### Claude Desktop note (stdio-only)
+
+Claude Desktop expects each server entry to have a **`command`** and **`args`**. It will reject URL entries.
+
+For remote HTTP MCP servers, use the **Claude Desktop (remote HTTP)** export, which wraps the URL via [`mcp-remote`](https://www.npmjs.com/package/mcp-remote?activeTab=readme) and then runs that through `@latchagent/cli`.
+
+### “Where do I set the path?”
+
+For most users, you don’t: exports use **`npx`** so nothing is hardcoded.
+
+If a user’s machine doesn’t have Node/npx on PATH, they can replace:
+
+- `command: "npx"` with the absolute path to `npx`
+- or `command: "node"` with the absolute path to `node`
+
+
