@@ -162,6 +162,7 @@ export async function handleToolCall(
   const policyDecision = await evaluatePolicy({
     workspaceId: ctx.workspaceId,
     toolName,
+    toolArgs: args, // For smart rule evaluation
     upstreamId: ctx.upstreamId,
     actionClass: classification.actionClass,
     domain: classification.resource.domain,

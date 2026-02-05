@@ -11,6 +11,7 @@ import {
 import { eq, and, gte, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { hashToken } from "@latchagent/shared";
+import { evaluateSmartCondition } from "@/lib/proxy/smart-rules";
 
 /**
  * POST /api/v1/authorize
@@ -241,8 +242,8 @@ async function handleFreshRequest(
       ),
   ]);
 
-  // Evaluate policy
-  const decision = evaluatePolicy(input, rules, leases);
+  // Evaluate policy (async for smart rules)
+  const decision = await evaluatePolicy(input, rules, leases);
 
   if (decision.decision === "allowed") {
     return logAndRespond(input, agentId, "allowed", decision.reason);
@@ -300,11 +301,11 @@ async function handleFreshRequest(
 /**
  * Evaluate policy rules and leases
  */
-function evaluatePolicy(
+async function evaluatePolicy(
   input: AuthorizeInput,
   rules: typeof policyRules.$inferSelect[],
   leases: typeof policyLeases.$inferSelect[]
-): { decision: "allowed" | "denied" | "approval_required"; reason: string } {
+): Promise<{ decision: "allowed" | "denied" | "approval_required"; reason: string }> {
   type SpecificityKey = [number, number, number, number, number];
 
   const keyForRule = (rule: typeof policyRules.$inferSelect): SpecificityKey => [
@@ -330,7 +331,41 @@ function evaluatePolicy(
     return 0;
   };
 
-  // most-specific wins (tool > upstream > workspace); ties: newest createdAt
+  // 1) Evaluate smart rules first (LLM-powered) - highest precedence
+  const smartRules = rules.filter((r) => r.smartCondition && smartRuleScopeMatches(r, input));
+  
+  if (smartRules.length > 0) {
+    const smartResults = await Promise.all(
+      smartRules.map(async (rule) => {
+        const result = await evaluateSmartCondition(
+          input.tool_name,
+          input.args_redacted, // Use redacted args (still contains paths/patterns)
+          rule.smartCondition!
+        );
+        return { rule, result };
+      })
+    );
+
+    // Find matching smart rule (newest first)
+    const matchingSmartRule = smartResults
+      .filter((r) => r.result.matches)
+      .sort((a, b) => new Date(b.rule.createdAt).getTime() - new Date(a.rule.createdAt).getTime())[0];
+
+    if (matchingSmartRule) {
+      const { rule, result } = matchingSmartRule;
+      const effectMap: Record<string, "allowed" | "denied" | "approval_required"> = {
+        allow: "allowed",
+        deny: "denied",
+        require_approval: "approval_required",
+      };
+      return {
+        decision: effectMap[rule.effect] || "approval_required",
+        reason: `Smart rule: ${rule.name || rule.id} - ${result.reason}`,
+      };
+    }
+  }
+
+  // 2) Evaluate pattern-based rules and leases
   const matchingRules = rules.filter((r) => ruleMatches(r, input));
   const matchingLeases = leases.filter((l) => leaseMatches(l, input));
 
@@ -392,12 +427,35 @@ function evaluatePolicy(
 }
 
 /**
+ * Check if a smart rule's scope matches (before LLM evaluation)
+ */
+function smartRuleScopeMatches(
+  rule: typeof policyRules.$inferSelect,
+  input: AuthorizeInput
+): boolean {
+  // Check upstream constraint
+  if (rule.upstreamId && rule.upstreamId !== input.upstream_id) {
+    return false;
+  }
+  // Check tool name constraint
+  if (rule.toolName && rule.toolName.toLowerCase() !== input.tool_name.toLowerCase()) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Check if a rule matches the input
  */
 function ruleMatches(
   rule: typeof policyRules.$inferSelect,
   input: AuthorizeInput
 ): boolean {
+  // Smart rules are evaluated separately via LLM
+  if (rule.smartCondition) {
+    return false;
+  }
+
   // Check action class
   if (rule.actionClass !== "any" && rule.actionClass !== input.action_class) {
     return false;

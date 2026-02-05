@@ -23,6 +23,8 @@ const createRuleSchema = z.object({
   domainMatchType: z.enum(["exact", "suffix"]).optional(),
   recipientMatch: z.string().optional(), // Exact email address match
   priority: z.number().min(0).max(100).default(50),
+  // Smart rules: LLM-evaluated natural language condition
+  smartCondition: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -53,6 +55,7 @@ export async function POST(request: NextRequest) {
         domainMatchType: data.domainMatchType,
         recipientMatch: data.recipientMatch,
         priority: data.priority,
+        smartCondition: data.smartCondition,
         enabled: true,
       })
       .returning();

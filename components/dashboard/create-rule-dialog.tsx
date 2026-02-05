@@ -21,7 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Upstream {
@@ -47,6 +49,10 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
   const [toolName, setToolName] = useState("");
   const [domainMatch, setDomainMatch] = useState("");
   const [domainMatchType, setDomainMatchType] = useState<string>("exact");
+  
+  // Smart rules
+  const [isSmartRule, setIsSmartRule] = useState(false);
+  const [smartCondition, setSmartCondition] = useState("");
 
   const selectedUpstream =
     upstreamId === "any" ? undefined : upstreams?.find((u) => u.id === upstreamId);
@@ -63,6 +69,16 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
   })();
 
   const handleSubmit = async () => {
+    // Validate smart rules have a condition
+    if (isSmartRule && !smartCondition.trim()) {
+      toast({
+        title: "Error",
+        description: "Smart rules require a condition",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch("/api/rules", {
@@ -72,11 +88,12 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
           workspaceId,
           name: name || undefined,
           effect,
-          actionClass,
+          actionClass: isSmartRule ? "any" : actionClass, // Smart rules match any action
           upstreamId: upstreamId === "any" ? undefined : upstreamId,
           toolName: toolName || undefined,
-          domainMatch: domainMatch || undefined,
-          domainMatchType: domainMatch ? domainMatchType : undefined,
+          domainMatch: isSmartRule ? undefined : domainMatch || undefined,
+          domainMatchType: isSmartRule ? undefined : (domainMatch ? domainMatchType : undefined),
+          smartCondition: isSmartRule ? smartCondition.trim() : undefined,
         }),
       });
 
@@ -87,7 +104,9 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
 
       toast({
         title: "Rule created",
-        description: "The policy rule has been created successfully.",
+        description: isSmartRule 
+          ? "Smart rule created. It will use AI to evaluate tool calls."
+          : "The policy rule has been created successfully.",
       });
       setOpen(false);
       router.refresh();
@@ -99,6 +118,8 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
       setUpstreamId("any");
       setToolName("");
       setDomainMatch("");
+      setIsSmartRule(false);
+      setSmartCondition("");
     } catch (error) {
       toast({
         title: "Error",
@@ -126,31 +147,71 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {/* Smart Rule Toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              <div>
+                <Label htmlFor="smart-rule" className="text-sm font-medium">
+                  Smart Rule (AI-powered)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Use natural language to define when this rule triggers
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="smart-rule"
+              checked={isSmartRule}
+              onCheckedChange={setIsSmartRule}
+            />
+          </div>
+
           <div className="grid gap-2">
             <Label htmlFor="name">Name (optional)</Label>
             <Input
               id="name"
-              placeholder="e.g., Allow GitHub API"
+              placeholder={isSmartRule ? "e.g., Block sensitive file searches" : "e.g., Allow GitHub API"}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label>Effect</Label>
-              <Select value={effect} onValueChange={setEffect}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="allow">Allow</SelectItem>
-                  <SelectItem value="deny">Deny</SelectItem>
-                  <SelectItem value="require_approval">Require Approval</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid gap-2">
+            <Label>Effect</Label>
+            <Select value={effect} onValueChange={setEffect}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="allow">Allow</SelectItem>
+                <SelectItem value="deny">Deny</SelectItem>
+                <SelectItem value="require_approval">Require Approval</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
+          {/* Smart Rule Condition */}
+          {isSmartRule && (
+            <div className="grid gap-2">
+              <Label htmlFor="smartCondition">
+                Condition <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="smartCondition"
+                placeholder="Describe when this rule should trigger, e.g.:&#10;&#10;• Searches targeting sensitive files like .env, passwords, SSH keys, or credentials&#10;• File operations outside the project directory&#10;• Requests that could expose API keys or secrets"
+                value={smartCondition}
+                onChange={(e) => setSmartCondition(e.target.value)}
+                className="min-h-[100px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                An AI will evaluate each tool call against this condition. Be specific about what should trigger the rule.
+              </p>
+            </div>
+          )}
+
+          {/* Pattern-based fields (hidden for smart rules) */}
+          {!isSmartRule && (
             <div className="grid gap-2">
               <Label>Action Class</Label>
               <Select value={actionClass} onValueChange={setActionClass}>
@@ -168,7 +229,7 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          )}
 
           <div className="grid gap-2">
             <Label>Upstream (optional)</Label>
@@ -214,30 +275,33 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2 grid gap-2">
-              <Label htmlFor="domainMatch">Domain Match (optional)</Label>
-              <Input
-                id="domainMatch"
-                placeholder="e.g., github.com"
-                value={domainMatch}
-                onChange={(e) => setDomainMatch(e.target.value)}
-                className="font-mono"
-              />
+          {/* Domain match only for pattern rules */}
+          {!isSmartRule && (
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2 grid gap-2">
+                <Label htmlFor="domainMatch">Domain Match (optional)</Label>
+                <Input
+                  id="domainMatch"
+                  placeholder="e.g., github.com"
+                  value={domainMatch}
+                  onChange={(e) => setDomainMatch(e.target.value)}
+                  className="font-mono"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Match Type</Label>
+                <Select value={domainMatchType} onValueChange={setDomainMatchType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="exact">Exact</SelectItem>
+                    <SelectItem value="suffix">Suffix</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Match Type</Label>
-              <Select value={domainMatchType} onValueChange={setDomainMatchType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="exact">Exact</SelectItem>
-                  <SelectItem value="suffix">Suffix</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          )}
 
         </div>
         <DialogFooter>

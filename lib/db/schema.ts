@@ -183,6 +183,9 @@ export const policyRules = pgTable("policy_rules", {
   domainMatchType: domainMatchTypeEnum("domain_match_type"),
   recipientMatch: text("recipient_match"), // Exact email/recipient match
   rateLimitPerHour: integer("rate_limit_per_hour"),
+  // Smart rules: LLM-evaluated natural language condition
+  // When set, the rule uses an LLM to evaluate if the tool call matches this condition
+  smartCondition: text("smart_condition"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

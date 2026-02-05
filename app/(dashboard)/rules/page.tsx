@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ShieldCheck, ShieldX, ShieldAlert, Clock } from "lucide-react";
+import { ShieldCheck, ShieldX, ShieldAlert, Clock, Sparkles } from "lucide-react";
 import { CreateRuleDialog } from "@/components/dashboard/create-rule-dialog";
 import { NaturalLanguageRules } from "@/components/dashboard/natural-language-rules";
 import { DeleteLeaseButton } from "@/components/dashboard/delete-lease-button";
@@ -147,23 +147,42 @@ export default async function RulesPage() {
                   <TableBody>
                     {rules.map((rule) => (
                       <TableRow key={rule.id}>
-                        <TableCell>{rule.name || "—"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {rule.smartCondition && (
+                              <Badge variant="outline" className="text-xs shrink-0 border-violet-500/50 text-violet-500">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                AI
+                              </Badge>
+                            )}
+                            <div className="min-w-0">
+                              <span className="font-medium">{rule.name || "Unnamed rule"}</span>
+                              {rule.smartCondition && (
+                                <p className="text-xs text-muted-foreground truncate max-w-[300px]" title={rule.smartCondition}>
+                                  {rule.smartCondition}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <EffectBadge effect={rule.effect} />
                         </TableCell>
-                        <TableCell className="uppercase text-xs font-medium">
-                          {rule.actionClass}
+                        <TableCell className="text-xs text-muted-foreground">
+                          {rule.smartCondition ? "—" : rule.actionClass.toUpperCase()}
                         </TableCell>
                         <TableCell className="font-mono text-xs">
-                          {rule.upstreamId ? upstreamsList.find((u) => u.id === rule.upstreamId)?.name || "—" : "*"}
+                          {rule.upstreamId ? upstreamsList.find((u) => u.id === rule.upstreamId)?.name : "All"}
                         </TableCell>
                         <TableCell className="font-mono text-xs">
-                          {rule.toolName || "*"}
+                          {rule.toolName || "All"}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {rule.domainMatch
-                            ? `${rule.domainMatchType === "suffix" ? "*." : ""}${rule.domainMatch}`
-                            : "*"}
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {rule.smartCondition 
+                            ? "—" 
+                            : rule.domainMatch
+                              ? `${rule.domainMatchType === "suffix" ? "*." : ""}${rule.domainMatch}`
+                              : "—"}
                         </TableCell>
                         <TableCell>
                           <RuleActions rule={rule} />

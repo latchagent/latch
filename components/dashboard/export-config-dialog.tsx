@@ -75,7 +75,7 @@ export function ExportConfigDialog({
             command: "npx",
             args: [
               "-y",
-              "@latchagent/cli",
+              "@latchagent/cli@latest",
               "run",
               "--upstream-command",
               "npx",
@@ -113,7 +113,7 @@ export function ExportConfigDialog({
             command: "npx",
             args: [
               "-y",
-              "@latchagent/cli",
+              "@latchagent/cli@latest",
               "run",
               "--upstream-command",
               upstream.stdioCommand,
@@ -142,7 +142,7 @@ export function ExportConfigDialog({
   const stdioSyncCommand = useMemo(() => {
     if (upstream.transport !== "stdio" || !upstream.stdioCommand) return null;
     const upstreamArgs = asCommaArgs(upstream.stdioArgs ?? []);
-    return `npx -y @latchagent/cli sync-tools --upstream-command "${upstream.stdioCommand}" --upstream-args "${upstreamArgs}" --cloud-url "${cloudUrl}" --workspace "${workspaceId}" --upstream-id "${upstream.id}" --agent-key "${agentKey}"`;
+    return `npx -y @latchagent/cli@latest sync-tools --upstream-command "${upstream.stdioCommand}" --upstream-args "${upstreamArgs}" --cloud-url "${cloudUrl}" --workspace "${workspaceId}" --upstream-id "${upstream.id}" --agent-key "${agentKey}"`;
   }, [agentKey, cloudUrl, upstream, workspaceId]);
 
   const httpSnippet = useMemo(() => {
@@ -179,7 +179,7 @@ export function ExportConfigDialog({
           Export
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[780px]">
+      <DialogContent className="sm:max-w-[780px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Export client config</DialogTitle>
           <DialogDescription>
@@ -263,7 +263,7 @@ export function ExportConfigDialog({
                         </div>
                         <CopyButton value={stdioSyncCommand} />
                       </div>
-                      <pre className="overflow-x-auto p-3 text-xs">
+                      <pre className="overflow-auto p-3 text-xs whitespace-pre-wrap break-all">
                         <code>{stdioSyncCommand}</code>
                       </pre>
                       <div className="px-3 pb-3 text-xs text-muted-foreground">
@@ -299,7 +299,7 @@ function SnippetBlock({ value }: { value: string }) {
         <div className="text-xs text-muted-foreground">JSON</div>
         <CopyButton value={value} />
       </div>
-      <pre className="overflow-x-auto p-3 text-xs">
+      <pre className="overflow-auto p-3 text-xs max-h-[45vh]">
         <code>{value}</code>
       </pre>
     </div>

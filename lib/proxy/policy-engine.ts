@@ -9,10 +9,12 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, gte } from "drizzle-orm";
 import { getDefaultDecision } from "./classifier";
+import { evaluateSmartCondition } from "./smart-rules";
 
 export interface PolicyContext {
   workspaceId: string;
   toolName: string;
+  toolArgs?: unknown; // For smart rule evaluation
   upstreamId: string;
   actionClass: ActionClass;
   domain?: string;
@@ -24,6 +26,7 @@ export interface PolicyDecision {
   reason: string;
   matchedRule?: PolicyRule;
   matchedLease?: PolicyLease;
+  smartRuleReason?: string; // Explanation from LLM when smart rule matches
 }
 
 type SpecificityKey = [number, number, number, number, number];
@@ -77,9 +80,15 @@ function matchesDomain(
 }
 
 /**
- * Check if a rule matches the context
+ * Check if a rule matches the context (for pattern-based rules)
+ * Smart rules are handled separately via LLM evaluation
  */
 function ruleMatches(rule: PolicyRule, ctx: PolicyContext): boolean {
+  // Smart rules are evaluated separately
+  if (rule.smartCondition) {
+    return false;
+  }
+
   // Check action class
   if (rule.actionClass !== "any" && rule.actionClass !== ctx.actionClass) {
     return false;
@@ -100,6 +109,23 @@ function ruleMatches(rule: PolicyRule, ctx: PolicyContext): boolean {
     if (!matchesDomain(ctx.domain, rule.domainMatch, rule.domainMatchType)) {
       return false;
     }
+  }
+
+  return true;
+}
+
+/**
+ * Check if a smart rule's scope matches (upstream/tool constraints before LLM eval)
+ */
+function smartRuleScopeMatches(rule: PolicyRule, ctx: PolicyContext): boolean {
+  // Check upstream constraint
+  if (rule.upstreamId && rule.upstreamId !== ctx.upstreamId) {
+    return false;
+  }
+
+  // Check tool name constraint
+  if (rule.toolName && rule.toolName.toLowerCase() !== ctx.toolName.toLowerCase()) {
+    return false;
   }
 
   return true;
@@ -163,8 +189,46 @@ export async function evaluatePolicy(ctx: PolicyContext): Promise<PolicyDecision
       )
     );
 
-  // Evaluate matching rules/leases with "most-specific wins" precedence:
-  // tool > upstream > workspace, ties broken by newest createdAt.
+  // 1) Evaluate smart rules first (LLM-powered)
+  // Smart rules take highest precedence when they match
+  const smartRules = rules.filter((r) => r.smartCondition && smartRuleScopeMatches(r, ctx));
+
+  if (smartRules.length > 0 && ctx.toolArgs !== undefined) {
+    // Evaluate smart rules in parallel
+    const smartResults = await Promise.all(
+      smartRules.map(async (rule) => {
+        const result = await evaluateSmartCondition(
+          ctx.toolName,
+          ctx.toolArgs,
+          rule.smartCondition!
+        );
+        return { rule, result };
+      })
+    );
+
+    // Find the first matching smart rule (ordered by createdAt desc for most recent)
+    const matchingSmartRule = smartResults
+      .filter((r) => r.result.matches)
+      .sort((a, b) => new Date(b.rule.createdAt).getTime() - new Date(a.rule.createdAt).getTime())[0];
+
+    if (matchingSmartRule) {
+      const { rule, result } = matchingSmartRule;
+      const effectMap: Record<string, Decision> = {
+        allow: "allowed",
+        deny: "denied",
+        require_approval: "approval_required",
+      };
+
+      return {
+        decision: effectMap[rule.effect] || "approval_required",
+        reason: `Smart rule matched: ${rule.name || rule.id}`,
+        matchedRule: rule,
+        smartRuleReason: result.reason,
+      };
+    }
+  }
+
+  // 2) Evaluate pattern-based rules and leases
   const matchingRules = rules.filter((r) => ruleMatches(r, ctx));
   const matchingLeases = leases.filter((l) => leaseMatches(l, ctx));
 
@@ -225,7 +289,7 @@ export async function evaluatePolicy(ctx: PolicyContext): Promise<PolicyDecision
     };
   }
 
-  // 5) Fall back to defaults based on action class
+  // 3) Fall back to defaults based on action class
   const defaultDecision = getDefaultDecision(ctx.actionClass);
 
   // Special case: SEND to external domain requires approval by default
