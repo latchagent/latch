@@ -1,0 +1,112 @@
+---
+title: Audit Log
+sidebarTitle: Audit Log
+description: Track every action your AI agent takes.
+---
+
+The audit log records every tool call that passes through Latch, along with the decision made and why.
+
+## What Gets Logged
+
+Every tool call is logged with:
+
+| Field | Description |
+|-------|-------------|
+| **Timestamp** | When the request occurred |
+| **Upstream** | Which MCP server was called |
+| **Tool** | Which tool was invoked |
+| **Action Class** | How Latch classified the action (READ, WRITE, EXECUTE, etc.) |
+| **Decision** | What happened (Allowed, Denied, Approval Required, Approved) |
+| **Rule** | Which rule triggered the decision |
+| **Arguments** | The tool call arguments (with sensitive values redacted) |
+
+## Viewing the Audit Log
+
+1. Go to **Audit Log** in the dashboard
+2. Browse recent requests or filter by:
+   - Upstream
+   - Tool
+   - Decision type
+   - Date range
+
+## Understanding Decisions
+
+| Decision | Meaning |
+|----------|---------|
+| **Allowed** | Action proceeded automatically (matched an Allow rule or safe default) |
+| **Denied** | Action was blocked (matched a Deny rule) |
+| **Approval Required** | Action is waiting for human approval |
+| **Approved** | Action was approved and completed |
+| **Rejected** | Action was denied by a human reviewer |
+| **Expired** | Approval request timed out |
+
+## Automatic Redaction
+
+Latch automatically redacts sensitive values in logged arguments:
+
+- Passwords and secrets → `[REDACTED]`
+- API keys and tokens → `[REDACTED]`
+- Long content (>500 chars) → `[TRUNCATED]`
+- Approval tokens → removed entirely
+
+This keeps your audit log useful for debugging without exposing secrets.
+
+### Redacted Fields
+
+Fields matching these patterns are redacted:
+- `password`, `passwd`, `secret`
+- `token`, `api_key`, `apiKey`
+- `credential`, `auth`, `bearer`
+- `private_key`, `privateKey`
+
+## Using the Audit Log
+
+### Debugging Agent Behavior
+
+When your agent does something unexpected:
+1. Find the request in the audit log
+2. Check which tool was called and with what arguments
+3. See which rule triggered the decision
+4. Adjust rules if needed
+
+### Security Review
+
+Periodically review the audit log to:
+- Spot unusual patterns (many denied requests, unexpected tools)
+- Verify rules are working as intended
+- Identify tools that might need stricter policies
+
+### Compliance
+
+The audit log provides a complete record for:
+- Security audits
+- Incident investigation
+- Understanding AI agent behavior over time
+
+## Filtering and Search
+
+Use filters to find specific requests:
+
+```
+Upstream: github
+Decision: Denied
+Tool: create_pull_request
+Date: Last 7 days
+```
+
+## Retention
+
+Audit logs are stored in your Postgres database. Configure retention based on your needs:
+- Default: All logs retained indefinitely
+- For high-volume deployments, consider periodic cleanup
+
+## API Access
+
+You can query the audit log programmatically:
+
+```bash
+curl -H "Authorization: Bearer latch_..." \
+  "https://your-latch/api/audit?limit=100"
+```
+
+See the [API Reference](/configuration) for details.

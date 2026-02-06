@@ -1,77 +1,138 @@
 ---
-title: Upstreams (Import, Tools, Policies)
-description: Import MCP server configs, discover tools, and scope policies per upstream/tool.
+title: Upstreams
+sidebarTitle: Upstreams
+description: Connect and manage your MCP servers.
 ---
 
-## Import an MCP config
+An **upstream** represents an MCP server that Latch protects. When you connect an AI agent to Latch, Latch forwards requests to the upstream and enforces your security policies.
 
-Latch supports importing MCP server configs in the common `mcpServers` shape used by tools like Cursor and Claude Desktop:
+## What is an Upstream?
 
-- **Stdio servers**: `{ "command": "...", "args": ["..."] }`
-- **HTTP servers**: `{ "url": "https://...", "headers": { ... } }`
+Think of an upstream as a "protected server registration." It tells Latch:
+- **What** MCP server to connect to
+- **How** to connect (stdio command or HTTP URL)
+- **Which tools** that server exposes
 
-In the dashboard:
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  AI Agent   │────▶│    Latch    │────▶│  Upstream   │
+│  (Claude)   │     │   (proxy)   │     │ (MCP Server)│
+└─────────────┘     └─────────────┘     └─────────────┘
+```
 
-- Go to **Upstreams**
-- Click **Import MCP config**
-- Paste your JSON and choose the server entry to import
+## Creating an Upstream
 
-## Auth headers (HTTP)
+1. Go to **Upstreams** in the dashboard
+2. Click **Create Upstream**
+3. Choose your transport type:
 
-Many remote MCP servers require static auth headers (API keys or Bearer tokens). When you import an HTTP server config, Latch stores the `headers` on the upstream and uses them for:
+### Stdio Upstreams (Local)
 
-- tool discovery (`tools/list`)
-- forwarding requests (for HTTP upstreams)
+For MCP servers that run as local processes (most common):
 
-Header values are treated as secrets and are not shown again after saving.
+- **Name**: A label for this upstream (e.g., `filesystem`, `github`)
+- **Command**: The command to run (e.g., `npx`)
+- **Args**: Command arguments (e.g., `-y,@modelcontextprotocol/server-filesystem,/tmp`)
 
-## Tool discovery
+<Note>
+For stdio upstreams, the command/args are only used for tool discovery. The actual server is spawned by the CLI when your agent connects.
+</Note>
 
-To write per-tool policies, Latch needs to know which tools a server exposes.
+### HTTP Upstreams (Remote)
 
-- **HTTP upstreams**: tool discovery runs automatically on save and you can re-run it via **Sync tools**.
-- **Stdio upstreams**: tool discovery happens when the upstream runs and someone calls `tools/list`.
-  - Most clients do this on connect.
-  - If you want to sync tools before writing rules, use the one-time CLI command from **Upstreams → Export → One-time tool sync (stdio)**.
+For MCP servers running as web services:
 
-## Policies per upstream and tool
+- **Name**: A label for this upstream
+- **URL**: The server's HTTP endpoint
+- **Headers**: Authentication headers (API keys, Bearer tokens)
 
-Rules can be scoped at three levels:
+## Importing from Claude Desktop / Cursor
 
-- **Workspace default**: applies to all upstreams/tools
-- **Upstream**: applies to one upstream
-- **Tool**: applies to one tool within one upstream
+Already have MCP servers configured? Import them directly:
 
-**Precedence**:
+1. Go to **Upstreams** → **Import MCP config**
+2. Paste your `mcpServers` JSON from Claude Desktop or Cursor config
+3. Select which server to import
 
-- Most-specific wins: tool &gt; upstream &gt; workspace
-- Ties are broken by newest rule
+**Claude Desktop config location:**
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
 
-In the dashboard, go to **Policy Rules** and create a rule with:
+## Tool Discovery
 
-- an optional **Upstream**
-- an optional **Tool** (dropdown if tools are discovered)
+Latch needs to know what tools an upstream exposes so you can create per-tool rules.
 
-## Export client configs
+| Transport | Discovery Method |
+|-----------|------------------|
+| **HTTP** | Automatic on save. Re-run via **Sync Tools** button. |
+| **Stdio** | Happens when the CLI connects. Or run manual sync (see below). |
 
-On the **Upstreams** page, click **Export** on an upstream row.
+### Manual Tool Sync (Stdio)
 
-- **Stdio** upstreams export a config that runs `@latchagent/cli` as the MCP server and spawns the upstream command/args.
-- **HTTP** upstreams export a URL config pointing at Latch’s proxy endpoint (requires clients that support MCP over HTTP POST).
+To discover tools before connecting an agent:
 
-### Claude Desktop note (stdio-only)
+```bash
+npx @latchagent/cli@latest tools-sync \
+  --api-key "latch_YOUR_KEY" \
+  --upstream "my-upstream" \
+  --upstream-command "npx" \
+  --upstream-args "-y,@modelcontextprotocol/server-filesystem,/tmp"
+```
 
-Claude Desktop expects each server entry to have a **`command`** and **`args`**. It will reject URL entries.
+After syncing, tools appear in the **Tools** page and in rule dropdowns.
 
-For remote HTTP MCP servers, use the **Claude Desktop (remote HTTP)** export, which wraps the URL via [`mcp-remote`](https://www.npmjs.com/package/mcp-remote?activeTab=readme) and then runs that through `@latchagent/cli`.
+## Exporting Client Configs
 
-### “Where do I set the path?”
+Once an upstream is configured, export a ready-to-use config for your MCP client:
 
-For most users, you don’t: exports use **`npx`** so nothing is hardcoded.
+1. Go to **Upstreams**
+2. Click **Export** on the upstream row
+3. Choose your client format (Claude Desktop, Cursor, etc.)
+4. Paste into your client's config file
 
-If a user’s machine doesn’t have Node/npx on PATH, they can replace:
+The export wraps your upstream through Latch, so all requests are protected.
 
-- `command: "npx"` with the absolute path to `npx`
-- or `command: "node"` with the absolute path to `node`
+## Common Upstream Examples
 
+### Filesystem Server
 
+```json
+{
+  "name": "filesystem",
+  "transport": "stdio",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/me/projects"]
+}
+```
+
+### GitHub Server
+
+```json
+{
+  "name": "github",
+  "transport": "stdio",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-github"]
+}
+```
+
+### Remote HTTP Server
+
+```json
+{
+  "name": "my-api",
+  "transport": "http",
+  "url": "https://mcp.example.com/api",
+  "headers": {
+    "Authorization": "Bearer sk-..."
+  }
+}
+```
+
+## Next Steps
+
+Once you've created an upstream:
+1. [Sync its tools](#tool-discovery) so Latch knows what it exposes
+2. [Create rules](/rules) to control what actions are allowed
+3. [Export the config](#exporting-client-configs) to your MCP client

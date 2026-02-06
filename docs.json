@@ -13,8 +13,12 @@
         "pages": ["docs/introduction", "docs/quickstart", "docs/claude-desktop"]
       },
       {
-        "group": "Features",
-        "pages": ["docs/smart-rules", "docs/upstreams", "docs/telegram"]
+        "group": "Core Concepts",
+        "pages": ["docs/upstreams", "docs/rules", "docs/smart-rules", "docs/audit-log"]
+      },
+      {
+        "group": "Integrations",
+        "pages": ["docs/telegram"]
       },
       {
         "group": "Reference",

@@ -1,0 +1,163 @@
+---
+title: Rules
+sidebarTitle: Rules
+description: Define what actions are allowed, denied, or require approval.
+---
+
+Rules are the core of Latch's security model. They define what your AI agent can and cannot do.
+
+## What is a Rule?
+
+A rule is a policy that says: "When this type of action happens, do this."
+
+Every tool call is evaluated against your rules to determine the outcome:
+
+| Effect | What Happens |
+|--------|--------------|
+| **Allow** | Action proceeds immediately |
+| **Deny** | Action is blocked with an error |
+| **Require Approval** | Action pauses until you approve or deny |
+
+## How Rules Work
+
+When a tool call comes in, Latch:
+
+1. **Classifies** the action (read, write, execute, send, etc.)
+2. **Finds matching rules** based on upstream, tool, and action class
+3. **Applies the most specific rule** that matches
+4. **Logs the decision** to the audit log
+
+### Default Behavior
+
+If no rules match, Latch uses sensible defaults:
+
+| Action Class | Default | Examples |
+|--------------|---------|----------|
+| READ | Allow | File reads, API queries |
+| WRITE | Allow | File writes, updates |
+| SEND (internal) | Allow | Messages within your domain |
+| SEND (external) | Require Approval | Emails to external recipients |
+| EXECUTE | Require Approval | Shell commands |
+| SUBMIT | Require Approval | Form submissions, PRs |
+| TRANSFER_VALUE | Deny | Payments, money transfers |
+
+## Creating a Rule
+
+1. Go to **Rules** in the dashboard
+2. Click **Create Rule**
+3. Configure:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | A descriptive name for this rule |
+| **Effect** | Allow, Deny, or Require Approval |
+| **Action Class** | Which type of action this applies to |
+| **Upstream** | (Optional) Limit to a specific upstream |
+| **Tool** | (Optional) Limit to a specific tool |
+
+### Example: Block All Shell Commands
+
+```
+Name: Block shell execution
+Effect: Deny
+Action Class: EXECUTE
+Upstream: (all)
+Tool: (all)
+```
+
+### Example: Require Approval for External Emails
+
+```
+Name: Approve external sends
+Effect: Require Approval
+Action Class: SEND
+Upstream: email-server
+Tool: (all)
+```
+
+### Example: Allow Reads on Filesystem
+
+```
+Name: Allow filesystem reads
+Effect: Allow
+Action Class: READ
+Upstream: filesystem
+Tool: (all)
+```
+
+## Rule Precedence
+
+When multiple rules could match, the **most specific rule wins**:
+
+```
+Tool + Upstream > Upstream only > Action Class only > Default
+```
+
+If two rules are equally specific, the **newest rule wins**.
+
+### Example
+
+You have these rules:
+1. "Allow all reads" (Action Class: READ, no upstream/tool)
+2. "Deny reads on secrets upstream" (Action Class: READ, Upstream: secrets)
+3. "Allow read_public_key tool" (Tool: read_public_key, Upstream: secrets)
+
+For a `read_public_key` call on the secrets upstream:
+- Rule 3 wins (most specific: tool + upstream)
+
+For a `read_private_key` call on the secrets upstream:
+- Rule 2 wins (upstream-specific beats global)
+
+For a `read_file` call on the filesystem upstream:
+- Rule 1 wins (only matching rule)
+
+## Scoping Rules
+
+Rules can be scoped at different levels:
+
+| Scope | Use Case |
+|-------|----------|
+| **Global** (no upstream/tool) | Default policies for all actions |
+| **Upstream** | Policies for a specific MCP server |
+| **Tool** | Policies for a specific tool |
+| **Upstream + Tool** | Precise control over one tool on one server |
+
+<Tip>
+Start with broad rules and add specific exceptions as needed.
+</Tip>
+
+## Approval Workflow
+
+When a rule requires approval:
+
+1. The tool call pauses
+2. You receive a notification (dashboard, Telegram, etc.)
+3. You review the action and its arguments
+4. You approve or deny
+5. If approved, the action proceeds with a one-time token
+
+### Approval Tokens
+
+- **Single-use**: Each approval is valid for one retry only
+- **Argument-bound**: The retry must have the exact same arguments
+- **Time-limited**: Tokens expire after a configurable period
+
+This prevents an agent from getting one approval and reusing it for different actions.
+
+## Smart Rules
+
+For complex conditions that are hard to express with action classes, use [Smart Rules](/smart-rules).
+
+Smart rules let you write policies in plain English:
+- "Block searches for passwords or API keys"
+- "Require approval for operations outside the project directory"
+
+See [Smart Rules](/smart-rules) for details.
+
+## Best Practices
+
+1. **Start restrictive**: Begin with "Require Approval" and relax as you trust the setup
+2. **Use action classes**: They're faster than smart rules for simple cases
+3. **Scope narrowly**: Apply rules to specific upstreams/tools when possible
+4. **Name descriptively**: Good names make the audit log easier to read
+5. **Review regularly**: Check the audit log to see how rules are being applied
