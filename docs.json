@@ -14,7 +14,7 @@
       },
       {
         "group": "Core Concepts",
-        "pages": ["docs/upstreams", "docs/rules", "docs/smart-rules", "docs/audit-log"]
+        "pages": ["docs/agents", "docs/upstreams", "docs/rules", "docs/smart-rules", "docs/audit-log"]
       },
       {
         "group": "Integrations",

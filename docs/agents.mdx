@@ -1,0 +1,139 @@
+---
+title: Agents
+sidebarTitle: Agents
+description: Manage the AI clients that connect to Latch.
+---
+
+An **agent** represents an AI client (like Claude Desktop or Cursor) that connects to Latch. Agents authenticate using API keys and can be tracked individually in the audit log.
+
+## What is an Agent?
+
+When an AI assistant connects through the Latch CLI, it authenticates as an agent. This lets you:
+
+- **Track activity** per client in the audit log
+- **See when agents are active** (last seen timestamp)
+- **Revoke access** by deleting the agent or its API key
+
+```
+┌─────────────────┐
+│  Claude Desktop │──┐
+└─────────────────┘  │     ┌─────────────┐     ┌─────────────┐
+                     ├────▶│    Latch    │────▶│  Upstreams  │
+┌─────────────────┐  │     │             │     │             │
+│     Cursor      │──┘     └─────────────┘     └─────────────┘
+└─────────────────┘
+      Agents              Authenticates &         MCP Servers
+                          enforces rules
+```
+
+## API Keys
+
+API keys authenticate agent connections to Latch. Each key is tied to a workspace.
+
+### Creating an API Key
+
+1. Go to **Settings** → **API Keys**
+2. Click **Create API Key**
+3. Give it a descriptive name (e.g., "MacBook Claude", "Work Cursor")
+4. Copy the key immediately — it won't be shown again
+
+<Warning>
+Keep your API keys secret. Anyone with the key can route traffic through your Latch workspace.
+</Warning>
+
+### Using API Keys
+
+Pass the API key to the Latch CLI:
+
+```bash
+npx @latchagent/cli@latest run \
+  --api-key "latch_YOUR_KEY" \
+  --upstream "my-upstream" \
+  --upstream-command "npx" \
+  --upstream-args "-y,@modelcontextprotocol/server-filesystem,/tmp"
+```
+
+Or in Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "npx",
+      "args": [
+        "@latchagent/cli@latest",
+        "run",
+        "--api-key", "latch_YOUR_KEY",
+        "--upstream", "my-upstream",
+        "--upstream-command", "npx",
+        "--upstream-args", "-y,@modelcontextprotocol/server-filesystem,/tmp"
+      ]
+    }
+  }
+}
+```
+
+## Managing Agents
+
+### Viewing Agents
+
+Go to **Settings** → **Agents** to see:
+- All registered agents
+- When they were created
+- When they were last active
+
+### Revoking Access
+
+To revoke an agent's access:
+1. Go to **Settings** → **API Keys**
+2. Delete the API key associated with that agent
+
+The agent will no longer be able to authenticate.
+
+## Best Practices
+
+### Use Separate Keys for Each Client
+
+Create different API keys for each machine or use case:
+- `macbook-claude` — Your personal laptop
+- `work-cursor` — Work development environment
+- `ci-agent` — Automated testing
+
+This lets you revoke access to one client without affecting others.
+
+### Descriptive Names
+
+Name your keys descriptively so you know what to revoke if something goes wrong:
+- ✅ `christian-macbook-pro-2026`
+- ✅ `staging-server-cursor`
+- ❌ `key1`
+- ❌ `test`
+
+### Rotate Keys Periodically
+
+For sensitive environments, rotate API keys periodically:
+1. Create a new key
+2. Update your client configs
+3. Delete the old key
+
+## Tracking Agent Activity
+
+The [Audit Log](/audit-log) shows which agent made each request:
+
+1. Go to **Audit Log**
+2. Filter by agent to see activity from a specific client
+3. Review patterns — unusual activity might indicate a compromised key
+
+## Troubleshooting
+
+### "Invalid agent key"
+
+- Verify you copied the full key (starts with `latch_`)
+- Check the key belongs to the correct workspace
+- Ensure the key hasn't been deleted
+
+### Agent not appearing in dashboard
+
+- The agent registers on first connection
+- Check that your CLI command is using the correct `--api-key`
+- Verify the Latch server is reachable
