@@ -13,12 +13,7 @@ Think of an upstream as a "protected server registration." It tells Latch:
 - **How** to connect (stdio command or HTTP URL)
 - **Which tools** that server exposes
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  AI Agent   │────▶│    Latch    │────▶│  Upstream   │
-│  (Claude)   │     │   (proxy)   │     │ (MCP Server)│
-└─────────────┘     └─────────────┘     └─────────────┘
-```
+**AI Agent (Claude)** → **Latch (proxy)** → **Upstream (MCP Server)**
 
 ## Creating an Upstream
 

@@ -14,17 +14,13 @@ When an AI assistant connects through the Latch CLI, it authenticates as an agen
 - **See when agents are active** (last seen timestamp)
 - **Revoke access** by deleting the agent or its API key
 
-```
-┌─────────────────┐
-│  Claude Desktop │──┐
-└─────────────────┘  │     ┌─────────────┐     ┌─────────────┐
-                     ├────▶│    Latch    │────▶│  Upstreams  │
-┌─────────────────┐  │     │             │     │             │
-│     Cursor      │──┘     └─────────────┘     └─────────────┘
-└─────────────────┘
-      Agents              Authenticates &         MCP Servers
-                          enforces rules
-```
+Multiple agents can connect to the same Latch instance:
+
+- **Claude Desktop** → Latch → MCP Servers
+- **Cursor** → Latch → MCP Servers  
+- **Your custom agent** → Latch → MCP Servers
+
+Each agent authenticates with its own API key.
 
 ## API Keys
 
