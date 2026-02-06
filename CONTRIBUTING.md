@@ -6,7 +6,7 @@ Thanks for your interest in contributing to Latch!
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/latchhq/latch
+   git clone https://github.com/latchagent/latch
    cd latch
    ```
 

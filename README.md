@@ -1,10 +1,10 @@
 # Latch
 
-Control layer for autonomous AI agents. Safe actions run automatically. Risky actions wait for approval.
+Security guardrails for AI agents. Safe actions run automatically. Risky actions wait for approval.
 
 ## What is Latch?
 
-Latch is an open-source guard proxy for MCP (Model Context Protocol) servers. It sits between your AI agent and its tools, enforcing policies on what the agent can do:
+Latch is an open-source proxy for MCP (Model Context Protocol) servers. It sits between your AI agent and its tools, enforcing policies on what the agent can do:
 
 - **Safe actions** (reads, internal writes) → Pass through automatically
 - **Risky actions** (shell commands, external sends) → Require human approval
@@ -12,50 +12,32 @@ Latch is an open-source guard proxy for MCP (Model Context Protocol) servers. It
 
 ## Quick Start
 
-### With Docker
-
 ```bash
-git clone https://github.com/latchhq/latch
+# Start Latch with Docker
+git clone https://github.com/latchagent/latch
 cd latch
-docker compose up --build
+docker compose up -d
 ```
 
-Dashboard: http://localhost:3000
-
-### Install CLI
+Open the dashboard at **http://localhost:3000**, create an account, and get your API key.
 
 ```bash
-npm install -g @latchagent/cli
-latch init
-```
-
-### Wrap an MCP Server
-
-```bash
-latch run --upstream-command "npx" --upstream-args "-y,@modelcontextprotocol/server-github"
+# Wrap an MCP server through Latch
+npx @latchagent/cli@latest run \
+  --api-key "latch_YOUR_KEY" \
+  --upstream "my-server" \
+  --upstream-command "npx" \
+  --upstream-args "-y,@modelcontextprotocol/server-filesystem,/tmp"
 ```
 
 ## How It Works
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  AI Agent   │────▶│  Latch CLI  │────▶│ MCP Server  │
-│             │     │   (proxy)   │     │             │
-│             │     │             │     │             │
-└─────────────┘     └─────────────┘     └─────────────┘
-                          │
-                          ▼
-                    ┌─────────────┐
-                    │  Dashboard  │
-                    │  (policies, │
-                    │  approvals) │
-                    └─────────────┘
-```
+**AI Agent** → **Latch CLI** → **Latch Server** → **MCP Server**
 
 1. Agent makes a tool call
 2. Latch CLI intercepts and classifies the action
 3. Policy is evaluated (allow / deny / require approval)
-4. If approved, call is forwarded to the real MCP server
+4. If allowed, call is forwarded to the MCP server
 5. Everything is logged for audit
 
 ## Action Classes
@@ -71,16 +53,16 @@ latch run --upstream-command "npx" --upstream-args "-y,@modelcontextprotocol/ser
 
 ## Features
 
-- **Deterministic policies** - Rules-based, no AI making security decisions
-- **Natural language rules** - Create policies in plain English
-- **Approval workflow** - Single-use tokens, time-limited leases
-- **Audit logging** - Full history of all tool calls
-- **Telegram notifications** - Approve from your phone
-- **Self-hosted** - Your data stays on your infrastructure
+- **Policy engine** — Rules based on action class, upstream, and tool
+- **LLM-evaluated policies** — Write conditions in plain English
+- **Approval workflow** — Single-use tokens, argument-bound
+- **Audit log** — Full history of all tool calls with redacted secrets
+- **Telegram notifications** — Approve from your phone
+- **Self-hosted** — Your data stays on your infrastructure
 
 ## Documentation
 
-Full documentation available at **[latch.mintlify.app](https://latch.mintlify.app/docs/introduction)**
+Full documentation at **[latch.mintlify.app](https://latch.mintlify.app/docs/introduction)**
 
 ## Contributing
 
@@ -88,4 +70,4 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for development setup and guidelines.
 
 ## License
 
-MIT - see [LICENSE](./LICENSE)
+MIT — see [LICENSE](./LICENSE)

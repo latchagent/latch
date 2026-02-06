@@ -35,7 +35,7 @@ export default function HomePage() {
               <span className="text-[#171717] dark:text-white font-medium">1.</span>{" "}
               Start Latch:
               <pre className="mt-2 overflow-x-auto rounded-lg bg-[#0a0a0a] text-white p-4 text-xs">
-                <code>{`git clone https://github.com/latchhq/latch
+                <code>{`git clone https://github.com/latchagent/latch
 cd latch
 docker compose up --build`}</code>
               </pre>
