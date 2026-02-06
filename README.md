@@ -80,7 +80,7 @@ latch run --upstream-command "npx" --upstream-args "-y,@modelcontextprotocol/ser
 
 ## Documentation
 
-See the [docs](./docs) folder for detailed documentation.
+Full documentation available at **[latch.mintlify.app](https://latch.mintlify.app/docs/introduction)**
 
 ## Contributing
 
