@@ -34,7 +34,7 @@ Latch is an open-source guard proxy that sits between your AI agent and its tool
 | ✅ Safe operations | Pass through automatically (reads, internal writes) |
 | ⚠️ Risky operations | Require your approval (shell commands, external sends) |
 | 🛑 Forbidden operations | Blocked entirely (payments, destructive actions) |
-| 🤖 Smart rules | AI evaluates natural language policies in real-time |
+| 🤖 LLM policies | Natural language conditions evaluated in real-time |
 
 ## Quick Example
 
@@ -45,7 +45,7 @@ Agent: "Search for API keys in ~/"
 
 # With Latch
 Agent: "Search for API keys in ~/"  
-→ 🛑 Blocked by smart rule: "Searches targeting sensitive files"
+→ 🛑 Blocked by policy: "Searches targeting sensitive files"
 → You see it in the audit log
 → Crisis averted
 ```
@@ -56,8 +56,8 @@ Agent: "Search for API keys in ~/"
   <Card title="Policy Engine" icon="shield">
     Rules based on tool name, action class, domain, and recipient. Most-specific rule wins.
   </Card>
-  <Card title="Smart Rules" icon="sparkles">
-    Define policies in plain English. An AI evaluates each tool call against your conditions.
+  <Card title="LLM-Evaluated Policies" icon="sparkles">
+    Write policy conditions in plain English. An LLM evaluates each tool call against them.
   </Card>
   <Card title="Approval Workflow" icon="check">
     Risky actions pause for your approval. Single-use tokens or time-limited leases.

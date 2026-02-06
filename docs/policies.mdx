@@ -1,0 +1,284 @@
+---
+title: Policies
+sidebarTitle: Policies
+description: Define what actions are allowed, denied, or require approval.
+---
+
+Policies are the core of Latch's security model. They define what your AI agent can and cannot do.
+
+## What is a Policy?
+
+A policy says: "When this type of action happens, do this."
+
+Every tool call is evaluated against your policies to determine the outcome:
+
+| Effect | What Happens |
+|--------|--------------|
+| **Allow** | Action proceeds immediately |
+| **Deny** | Action is blocked with an error |
+| **Require Approval** | Action pauses until you approve or deny |
+
+## How Policies Work
+
+When a tool call comes in, Latch:
+
+1. **Classifies** the action (read, write, execute, send, etc.)
+2. **Finds matching policies** based on upstream, tool, and action class
+3. **Applies the most specific policy** that matches
+4. **Logs the decision** to the audit log
+
+### Default Behavior
+
+If no policies match, Latch uses sensible defaults:
+
+| Action Class | Default | Examples |
+|--------------|---------|----------|
+| READ | Allow | File reads, API queries |
+| WRITE | Allow | File writes, updates |
+| SEND (internal) | Allow | Messages within your domain |
+| SEND (external) | Require Approval | Emails to external recipients |
+| EXECUTE | Require Approval | Shell commands |
+| SUBMIT | Require Approval | Form submissions, PRs |
+| TRANSFER_VALUE | Deny | Payments, money transfers |
+
+## Creating a Policy
+
+1. Go to **Policies** in the dashboard
+2. Click **Create Policy**
+3. Configure:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | A descriptive name for this policy |
+| **Effect** | Allow, Deny, or Require Approval |
+| **Action Class** | Which type of action this applies to |
+| **Upstream** | (Optional) Limit to a specific upstream |
+| **Tool** | (Optional) Limit to a specific tool |
+
+### Example: Block All Shell Commands
+
+```
+Name: Block shell execution
+Effect: Deny
+Action Class: EXECUTE
+Upstream: (all)
+Tool: (all)
+```
+
+### Example: Require Approval for External Emails
+
+```
+Name: Approve external sends
+Effect: Require Approval
+Action Class: SEND
+Upstream: email-server
+Tool: (all)
+```
+
+### Example: Allow Reads on Filesystem
+
+```
+Name: Allow filesystem reads
+Effect: Allow
+Action Class: READ
+Upstream: filesystem
+Tool: (all)
+```
+
+## Policy Precedence
+
+When multiple policies could match, the **most specific policy wins**:
+
+```
+Tool + Upstream > Upstream only > Action Class only > Default
+```
+
+If two policies are equally specific, the **newest policy wins**.
+
+### Example
+
+You have these policies:
+1. "Allow all reads" (Action Class: READ, no upstream/tool)
+2. "Deny reads on secrets upstream" (Action Class: READ, Upstream: secrets)
+3. "Allow read_public_key tool" (Tool: read_public_key, Upstream: secrets)
+
+For a `read_public_key` call on the secrets upstream:
+- Policy 3 wins (most specific: tool + upstream)
+
+For a `read_private_key` call on the secrets upstream:
+- Policy 2 wins (upstream-specific beats global)
+
+For a `read_file` call on the filesystem upstream:
+- Policy 1 wins (only matching policy)
+
+## Scoping Policies
+
+Policies can be scoped at different levels:
+
+| Scope | Use Case |
+|-------|----------|
+| **Global** (no upstream/tool) | Default policies for all actions |
+| **Upstream** | Policies for a specific MCP server |
+| **Tool** | Policies for a specific tool |
+| **Upstream + Tool** | Precise control over one tool on one server |
+
+<Tip>
+Start with broad policies and add specific exceptions as needed.
+</Tip>
+
+## Approval Workflow
+
+When a policy requires approval:
+
+1. The tool call pauses
+2. You receive a notification (dashboard, Telegram, etc.)
+3. You review the action and its arguments
+4. You approve or deny
+5. If approved, the action proceeds with a one-time token
+
+### Approval Tokens
+
+- **Single-use**: Each approval is valid for one retry only
+- **Argument-bound**: The retry must have the exact same arguments
+- **Time-limited**: Tokens expire after a configurable period
+
+This prevents an agent from getting one approval and reusing it for different actions.
+
+---
+
+## LLM-Evaluated Policies
+
+For conditions that are hard to express with action classes alone, you can write policies in natural language. When a tool call comes in, an LLM evaluates whether it matches your condition.
+
+### When to Use LLM-Evaluated Policies
+
+Standard policies work great for exact matches:
+- Block tool `delete_file`
+- Require approval for action class `EXECUTE`
+
+But what about:
+- "Block searches for sensitive files like .env, passwords, or SSH keys"
+- "Require approval for any operation that could expose credentials"
+- "Deny requests targeting directories outside the project"
+
+These are hard to express as action classes. LLM-evaluated policies handle them.
+
+### Creating an LLM-Evaluated Policy
+
+1. Go to **Policies** in the dashboard
+2. Click **Create Policy**
+3. Toggle on **LLM-Evaluated**
+4. Set the **Effect** (Allow, Deny, or Require Approval)
+5. Write your **Condition** in plain English
+6. Optionally scope to a specific **Upstream** or **Tool**
+
+### Example Conditions
+
+**Block sensitive file access:**
+```
+Searches or file operations targeting sensitive files like .env, 
+passwords, SSH keys, credentials, API keys, or /etc/passwd
+```
+
+**Require approval for external operations:**
+```
+Any operation that sends data to external domains or 
+recipients outside the organization
+```
+
+**Block destructive database operations:**
+```
+Database queries that could delete, drop, or truncate 
+tables or data
+```
+
+**Require approval for code changes:**
+```
+Operations that create, modify, or delete files in 
+production directories
+```
+
+### How LLM Evaluation Works
+
+1. A tool call comes in (e.g., `grep_search` with `target: "~/"`)
+2. Latch checks if any LLM-evaluated policies are in scope
+3. For each policy, the LLM evaluates: "Does this tool call match the condition?"
+4. If matched, the policy's effect is applied
+5. The LLM's reasoning is logged for auditing
+
+### Writing Good Conditions
+
+**Be specific:**
+```
+❌ "Block bad things"
+✅ "Block searches targeting sensitive files like .env, passwords, 
+   SSH keys, credentials, or configuration files containing secrets"
+```
+
+**Include examples:**
+```
+❌ "Block sensitive operations"  
+✅ "Block operations that access sensitive paths such as ~/.ssh, 
+   ~/.aws, ~/.env, /etc/passwd, or any .env files"
+```
+
+**Describe intent, not just patterns:**
+```
+❌ "Block requests with 'password' in arguments"
+✅ "Block any operation that appears to be searching for, 
+   accessing, or extracting passwords or credentials"
+```
+
+### Configuration
+
+LLM-evaluated policies use GPT-4o-mini. Set `OPENAI_API_KEY` in your environment:
+
+```bash
+OPENAI_API_KEY=sk-...
+```
+
+**Fallback behavior:** If `OPENAI_API_KEY` is not set, LLM policies fall back to keyword matching — less accurate but still catches common cases.
+
+### Performance Considerations
+
+- LLM evaluation adds ~200-500ms latency per policy
+- Policies are evaluated in parallel when multiple apply
+- Only policies in scope (matching upstream/tool) are evaluated
+- Use standard policies for simple exact matches (faster, deterministic)
+
+### Examples by Use Case
+
+**Development Security:**
+```
+Block any operation that accesses or modifies files containing 
+API keys, database credentials, or authentication tokens
+```
+
+**Data Protection:**
+```
+Require approval for operations that could export, download, 
+or transmit customer data or personally identifiable information
+```
+
+**Infrastructure Safety:**
+```
+Deny shell commands that could stop services, delete containers, 
+or modify system configuration files
+```
+
+**Code Review:**
+```
+Require approval for git operations that push to main/master 
+or create pull requests
+```
+
+---
+
+## Best Practices
+
+1. **Start restrictive**: Begin with "Require Approval" and relax as you trust the setup
+2. **Use action classes first**: They're faster and deterministic
+3. **Use LLM policies for complex conditions**: When action classes aren't enough
+4. **Scope narrowly**: Apply policies to specific upstreams/tools when possible
+5. **Name descriptively**: Good names make the audit log easier to read
+6. **Review regularly**: Check the audit log to see how policies are being applied
