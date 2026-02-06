@@ -7,13 +7,6 @@ description: Notes for running Latch beyond local development.
 
 Use the [Quickstart](./quickstart.mdx).
 
-## Production notes
-
-- Run behind HTTPS (reverse proxy like Caddy / Nginx / Traefik).
-- Set a strong `BETTER_AUTH_SECRET`.
-- Back up Postgres (volume snapshots or managed Postgres backups).
-- Pin image versions and upgrade intentionally.
-
 ## Database migrations
 
 On startup, the Docker image runs a schema sync to ensure the database is ready.
