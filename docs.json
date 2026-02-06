@@ -10,11 +10,11 @@
     "groups": [
       {
         "group": "Getting Started",
-        "pages": ["docs/introduction", "docs/quickstart"]
+        "pages": ["docs/introduction", "docs/quickstart", "docs/claude-desktop"]
       },
       {
-        "group": "Guides",
-        "pages": ["docs/upstreams", "docs/telegram"]
+        "group": "Features",
+        "pages": ["docs/smart-rules", "docs/upstreams", "docs/telegram"]
       },
       {
         "group": "Reference",
@@ -23,4 +23,3 @@
     ]
   }
 }
-
