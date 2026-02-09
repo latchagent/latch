@@ -324,6 +324,16 @@ function EditRuleDialog({
 
           {/* Smart Rule Condition */}
           {isSmartRule && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-900/40 dark:bg-amber-950/20 p-3 text-xs text-muted-foreground">
+              <div className="font-medium text-amber-800 dark:text-amber-300">Smart rule caution</div>
+              <div className="mt-1">
+                Smart rules run before deterministic rules. If you leave <span className="font-mono">Tool</span> blank,
+                this rule may apply to <span className="font-medium">all</span> requests.
+              </div>
+            </div>
+          )}
+
+          {isSmartRule && (
             <div className="space-y-2">
               <Label htmlFor="edit-smartCondition">
                 Condition <span className="text-destructive">*</span>

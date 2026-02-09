@@ -67,14 +67,20 @@ export default async function ApprovalsPage() {
                           </span>
                           <span>•</span>
                           <span>{request.actionClass.toUpperCase()}</span>
-                          {(request.resource as { domain?: string })?.domain && (
-                            <>
-                              <span>•</span>
-                              <span className="font-mono text-xs">
-                                {(request.resource as { domain: string }).domain}
-                              </span>
-                            </>
-                          )}
+                          {(() => {
+                            const res = request.resource as
+                              | { domain?: string; urlHost?: string; recipientDomain?: string; recipient?: string }
+                              | null
+                              | undefined;
+                            const label = res?.domain || res?.urlHost || res?.recipientDomain || res?.recipient;
+                            if (!label) return null;
+                            return (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono text-xs">{label}</span>
+                              </>
+                            );
+                          })()}
                         </CardDescription>
                       </div>
                       <Badge variant="warning" className="flex items-center gap-1">
@@ -84,6 +90,13 @@ export default async function ApprovalsPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Reason */}
+                    {request.denialReason ? (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Reason:</span> {request.denialReason}
+                      </div>
+                    ) : null}
+
                     {/* Risk Flags */}
                     {request.riskFlags ? (
                       <RiskFlagsDisplay flags={request.riskFlags as Record<string, boolean>} />
@@ -123,14 +136,23 @@ export default async function ApprovalsPage() {
 }
 
 function RiskFlagsDisplay({ flags }: { flags: Record<string, boolean> }) {
+  const labels: Record<string, string> = {
+    external_domain: "External domain",
+    new_recipient: "New recipient",
+    attachment: "Attachment",
+    form_submit: "Form submit",
+    shell_exec: "Shell exec",
+    destructive: "Destructive",
+  };
+
   const activeFlags = Object.entries(flags).filter(([, v]) => v);
   if (activeFlags.length === 0) return null;
-  
+
   return (
     <div className="flex flex-wrap gap-2">
       {activeFlags.map(([key]) => (
         <Badge key={key} variant="outline" className="text-xs">
-          {key.replace(/_/g, " ")}
+          {labels[key] || key.replace(/_/g, " ")}
         </Badge>
       ))}
     </div>

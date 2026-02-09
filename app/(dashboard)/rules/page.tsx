@@ -55,7 +55,7 @@ export default async function RulesPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Policy Rules</h1>
           <p className="mt-2 text-muted-foreground">
-            Configure deterministic rules for allowing, denying, or requiring approval for actions.
+            Configure deterministic rules for allowing, denying, or requiring approval for MCP + OpenClaw actions.
           </p>
         </div>
         <CreateRuleDialog workspaceId={workspaceId} upstreams={upstreamsList} />

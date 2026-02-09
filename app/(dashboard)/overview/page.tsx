@@ -117,7 +117,7 @@ export default async function OverviewPage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Overview</h1>
         <p className="mt-2 text-muted-foreground">
-          Monitor your MCP proxy activity and pending approvals.
+          Monitor tool activity (MCP + OpenClaw) and pending approvals.
         </p>
       </div>
 
@@ -126,10 +126,10 @@ export default async function OverviewPage() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Terminal className="h-4 w-4" />
-            CLI Configuration
+            Setup
           </CardTitle>
           <CardDescription>
-            Use these values to configure the Latch CLI
+            Use these values to configure MCP clients and OpenClaw.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -252,7 +252,7 @@ export default async function OverviewPage() {
       <Card>
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Last 10 requests processed by the proxy</CardDescription>
+          <CardDescription>Last 10 requests evaluated by policy</CardDescription>
         </CardHeader>
         <CardContent>
           {recentRequests.length === 0 ? (

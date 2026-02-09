@@ -39,7 +39,7 @@ export default async function AgentsPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Agents</h1>
           <p className="mt-2 text-muted-foreground">
-            Manage agent connections to your MCP proxy.
+            Manage agent credentials for MCP + OpenClaw.
           </p>
         </div>
         <CreateAgentDialog workspaceId={workspaceId} />

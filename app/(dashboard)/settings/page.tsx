@@ -22,7 +22,7 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
         <p className="mt-2 text-muted-foreground">
-          Manage your account and workspace settings.
+          Manage your account and workspace settings for MCP + OpenClaw approvals.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export default async function SettingsPage() {
             Proxy Configuration
           </CardTitle>
           <CardDescription>
-            Use these settings to configure your MCP agents.
+            Use these settings to configure MCP clients and OpenClaw.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

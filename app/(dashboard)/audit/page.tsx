@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ShieldCheck, ShieldX, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 
 export default async function AuditPage() {
   const session = await getServerSession();
@@ -42,7 +43,7 @@ export default async function AuditPage() {
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Audit Log</h1>
         <p className="mt-2 text-muted-foreground">
-          Complete history of all requests processed by the proxy.
+          Complete history of all requests evaluated by policy (MCP + OpenClaw).
         </p>
       </div>
 
@@ -72,6 +73,7 @@ export default async function AuditPage() {
                     <TableHead>Resource</TableHead>
                     <TableHead>Reason</TableHead>
                     <TableHead>Time</TableHead>
+                    <TableHead className="w-16"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -107,6 +109,14 @@ export default async function AuditPage() {
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatTime(request.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <Link
+                          href={`/audit/${request.id}`}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          View
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}
