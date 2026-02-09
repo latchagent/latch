@@ -45,8 +45,7 @@
         "description": "Optional log file path",
         "default": "~/.openclaw/workspace/latch-guard-toolcalls.log"
       }
-    },
-    "required": ["workspaceId", "upstreamId", "agentKey"]
+    }
   },
   "uiHints": {
     "mode": { "label": "Mode" },

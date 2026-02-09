@@ -1,0 +1,96 @@
+---
+title: OpenClaw Setup
+sidebarTitle: OpenClaw
+description: Route OpenClaw tool calls through Latch for policy + approvals.
+---
+
+Latch can enforce policies on **OpenClaw** tool calls by installing the **Latch Guard** OpenClaw plugin.
+
+This gives you a clean flow:
+
+**OpenClaw** → **Latch (local dashboard/API)** → (approve/deny) → **OpenClaw continues**
+
+## 1) Start Latch locally
+
+Use Docker (recommended):
+
+```bash
+git clone https://github.com/latchagent/latch
+cd latch
+docker compose up -d
+```
+
+Open the dashboard:
+- http://localhost:3000
+
+## 2) Create Workspace + Agent Key + Upstream
+
+In the Latch dashboard:
+
+1. Create a **Workspace** (or use your existing one)
+2. Create an **Agent Key** (Settings → API Keys)
+3. Create an **Upstream** for OpenClaw native tools
+   - Name suggestion: `openclaw-native`
+   - Transport can be anything; for native tool gating we primarily use it as a policy scope
+
+Copy:
+- `workspaceId`
+- `upstreamId`
+- `agentKey`
+
+## 3) Install the OpenClaw plugin
+
+From the Latch repo:
+
+```bash
+openclaw plugins install -l ./packages/openclaw-latch-guard
+openclaw gateway restart
+```
+
+## 4) Configure the plugin
+
+Edit `~/.openclaw/openclaw.json`:
+
+```json5
+{
+  "plugins": {
+    "entries": {
+      "openclaw-latch-guard": {
+        "enabled": true,
+        "config": {
+          "mode": "enforce",
+          "baseUrl": "http://localhost:3000",
+          "workspaceId": "<YOUR_WORKSPACE_UUID>",
+          "upstreamId": "<YOUR_UPSTREAM_UUID>",
+          "agentKey": "<YOUR_AGENT_KEY>",
+          "waitForApproval": true,
+          "approvalTimeoutSeconds": 300
+        }
+      }
+    }
+  }
+}
+```
+
+Then restart OpenClaw:
+
+```bash
+openclaw gateway restart
+```
+
+## 5) Test
+
+Trigger a risky OpenClaw tool call (e.g. a browser action). You should see a request appear in:
+- **Latch Audit Log**
+- **Approvals** (if policy requires approval)
+
+Approve it in the Latch dashboard, and the tool call will proceed automatically.
+
+## Safe defaults
+
+If the plugin is installed but not configured yet, it will **not block** OpenClaw. It will log that it is misconfigured and allow tool calls.
+
+## Next
+
+- See [Policies](/policies) to require approval for high-risk actions
+- See [Telegram Notifications](/telegram) if you want mobile alerts (Latch-side)

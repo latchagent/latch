@@ -116,10 +116,12 @@ export default {
         const timeoutMs = (cfg.approvalTimeoutSeconds || 300) * 1000;
 
         if (!workspaceId || !upstreamId || !agentKey) {
-          return {
-            block: true,
-            blockReason: "Latch Guard misconfigured: missing workspaceId/upstreamId/agentKey",
-          };
+          // Safe defaults: do NOT block OpenClaw when misconfigured.
+          await appendLine(
+            logFile,
+            `[${new Date().toISOString()}] misconfigured: missing workspaceId/upstreamId/agentKey; allowing tool=${toolName}`
+          );
+          return undefined;
         }
 
         const { action_class, risk_level } = classifyOpenClawToolCall(toolName, params);
