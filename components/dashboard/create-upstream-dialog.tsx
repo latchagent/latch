@@ -35,6 +35,7 @@ export function CreateUpstreamDialog({ workspaceId }: CreateUpstreamDialogProps)
   const [isLoading, setIsLoading] = useState(false);
 
   const [transport, setTransport] = useState<"http" | "stdio">("http");
+  const [isOpenClawNative, setIsOpenClawNative] = useState(false);
   const [name, setName] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [authType, setAuthType] = useState("none");
@@ -43,6 +44,21 @@ export function CreateUpstreamDialog({ workspaceId }: CreateUpstreamDialogProps)
 
   const [stdioCommand, setStdioCommand] = useState("");
   const [stdioArgsRaw, setStdioArgsRaw] = useState("");
+
+  // If user selects OpenClaw-native upstream, lock to a safe, minimal HTTP upstream.
+  const applyOpenClawDefaults = (enabled: boolean) => {
+    setIsOpenClawNative(enabled);
+    if (enabled) {
+      setName((prev) => (prev.trim() ? prev : "openclaw-native"));
+      setTransport("http");
+      setBaseUrl("http://localhost:3000");
+      setAuthType("none");
+      setAuthValue("");
+      setHeadersJson("");
+      setStdioCommand("");
+      setStdioArgsRaw("");
+    }
+  };
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -170,6 +186,22 @@ export function CreateUpstreamDialog({ workspaceId }: CreateUpstreamDialogProps)
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <div className="flex items-start gap-3 rounded-lg border border-cream-200 bg-cream-50 p-3">
+            <input
+              id="openclaw-native"
+              type="checkbox"
+              checked={isOpenClawNative}
+              onChange={(e) => applyOpenClawDefaults(e.target.checked)}
+              className="mt-1"
+            />
+            <div className="space-y-1">
+              <Label htmlFor="openclaw-native">This upstream is for OpenClaw native tools</Label>
+              <p className="text-xs text-forest-600">
+                Creates a lightweight upstream used as a namespace for policies + audit (no MCP server needed).
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input
@@ -177,6 +209,7 @@ export function CreateUpstreamDialog({ workspaceId }: CreateUpstreamDialogProps)
               placeholder="e.g., github-mcp, filesystem"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              disabled={isOpenClawNative}
             />
           </div>
 
@@ -185,6 +218,7 @@ export function CreateUpstreamDialog({ workspaceId }: CreateUpstreamDialogProps)
             <Select
               value={transport}
               onValueChange={(v) => setTransport(v as "http" | "stdio")}
+              disabled={isOpenClawNative}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -206,6 +240,7 @@ export function CreateUpstreamDialog({ workspaceId }: CreateUpstreamDialogProps)
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                   className="font-mono"
+                  disabled={isOpenClawNative}
                 />
               </div>
 
