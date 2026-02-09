@@ -169,7 +169,52 @@ export function ExportConfigDialog({
     );
   }, [agentKey, cloudUrl, upstream]);
 
-  const defaultTab = upstream.transport === "http" ? "http" : "stdio";
+  const openclawPluginSnippet = useMemo(() => {
+    const isOpenClaw = upstream.name === "openclaw-native" || upstream.name.startsWith("openclaw");
+    if (!isOpenClaw) return null;
+
+    return (
+      `{
+` +
+      `  // ~/.openclaw/openclaw.json (snippet)
+` +
+      `  "plugins": {
+` +
+      `    "entries": {
+` +
+      `      "openclaw-latch-guard": {
+` +
+      `        "enabled": true,
+` +
+      `        "config": {
+` +
+      `          "mode": "enforce",
+` +
+      `          "baseUrl": "${cloudUrl.replace(/\/$/, "")}",
+` +
+      `          "workspaceId": "${workspaceId}",
+` +
+      `          "upstreamId": "${upstream.id}",
+` +
+      `          "agentKey": "${agentKey}",
+` +
+      `          "waitForApproval": true,
+` +
+      `          "approvalTimeoutSeconds": 600
+` +
+      `        }
+` +
+      `      }
+` +
+      `    }
+` +
+      `  }
+` +
+      `}`
+    );
+  }, [agentKey, cloudUrl, upstream.id, upstream.name, workspaceId]);
+
+  const defaultTab = openclawPluginSnippet ? "openclaw" : upstream.transport === "http" ? "http" : "stdio";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -183,8 +228,8 @@ export function ExportConfigDialog({
         <DialogHeader>
           <DialogTitle>Export client config</DialogTitle>
           <DialogDescription>
-            Generates a pasteable <span className="font-mono">mcpServers</span> entry that routes via
-            Latch.
+            Generates a pasteable config snippet for your client (MCP) — and for OpenClaw, the plugin
+            config snippet.
           </DialogDescription>
         </DialogHeader>
 
@@ -202,10 +247,19 @@ export function ExportConfigDialog({
               This is the agent/client key you created in the dashboard. It is only used to render
               the snippet locally in your browser.
             </p>
+            {openclawPluginSnippet ? (
+              <p className="text-xs text-muted-foreground">
+                OpenClaw plugin export uses your current Latch URL ( <span className="font-mono">{cloudUrl}</span> ) as the
+                <span className="font-mono"> baseUrl</span>. If you are running Latch on a different port (e.g. 3001), open the dashboard on that port before exporting.
+              </p>
+            ) : null}
           </div>
 
           <Tabs defaultValue={defaultTab}>
             <TabsList>
+              <TabsTrigger value="openclaw" disabled={!openclawPluginSnippet}>
+                OpenClaw plugin
+              </TabsTrigger>
               <TabsTrigger value="http" disabled={!httpSnippet}>
                 URL (MCP clients that support it)
               </TabsTrigger>
@@ -216,6 +270,23 @@ export function ExportConfigDialog({
                 Stdio (Latch CLI)
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="openclaw">
+              {openclawPluginSnippet ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Paste this into <span className="font-mono">~/.openclaw/openclaw.json</span> under your
+                    existing config. Then restart the gateway.
+                  </p>
+                  <SnippetBlock value={openclawPluginSnippet} label="OpenClaw JSON" />
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  This export is only available for upstreams intended for OpenClaw native tools.
+                  (Tip: name it <span className="font-mono">openclaw-native</span>.)
+                </p>
+              )}
+            </TabsContent>
 
             <TabsContent value="http">
               {httpSnippet ? (
@@ -292,11 +363,11 @@ export function ExportConfigDialog({
   );
 }
 
-function SnippetBlock({ value }: { value: string }) {
+function SnippetBlock({ value, label }: { value: string; label?: string }) {
   return (
     <div className="rounded-lg border bg-muted/30">
       <div className="flex items-center justify-between px-3 py-2 border-b">
-        <div className="text-xs text-muted-foreground">JSON</div>
+        <div className="text-xs text-muted-foreground">{label ?? "JSON"}</div>
         <CopyButton value={value} />
       </div>
       <pre className="overflow-auto p-3 text-xs max-h-[45vh]">
