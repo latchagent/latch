@@ -408,20 +408,13 @@ function createErrorResponse(
 }
 
 /**
- * Get default decision for offline mode
+ * Get default decision for offline mode.
+ *
+ * All action classes default to "allowed". Users can create rules on the
+ * server to restrict specific actions (deny or require approval).
  */
 function getDefaultDecisionLocal(
   classification: ReturnType<typeof classifyToolCall>
 ): "allowed" | "denied" | "approval_required" {
-  switch (classification.actionClass) {
-    case "execute":
-    case "submit":
-      return "approval_required";
-    case "transfer_value":
-      return "denied";
-    case "send":
-      return classification.riskFlags.external_domain ? "approval_required" : "allowed";
-    default:
-      return "allowed";
-  }
+  return "allowed";
 }

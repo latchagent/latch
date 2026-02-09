@@ -7,7 +7,7 @@ import {
 } from "@/lib/telegram/bot";
 import { approveRequest, denyRequest } from "@/lib/proxy/approvals";
 import { db } from "@/lib/db";
-import { approvalRequests, workspaceMembers, telegramLinks } from "@/lib/db/schema";
+import { approvalRequests, requests, workspaceMembers, telegramLinks } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
 interface TelegramUpdate {
@@ -93,24 +93,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // Find the user by their Telegram chat ID
-      const [link] = await db
-        .select()
-        .from(telegramLinks)
-        .where(eq(telegramLinks.chatId, chatId));
-
-      if (!link) {
-        await answerCallbackQuery(
-          update.callback_query.id,
-          "Your Telegram is not linked to a Latch account"
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      // Get the approval request
+      // Find the approval request first (we need workspaceId to validate membership)
       const [approval] = await db
-        .select()
+        .select({
+          approval: approvalRequests,
+          request: requests,
+        })
         .from(approvalRequests)
+        .innerJoin(requests, eq(approvalRequests.requestId, requests.id))
         .where(eq(approvalRequests.id, approvalId));
 
       if (!approval) {
@@ -118,10 +108,43 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      if (approval.status !== "pending") {
+      const approvalRequest = approval.approval;
+      const originalRequest = approval.request;
+
+      // Find a linked user for this Telegram chat.
+      // NOTE: In group chats, many users share the same chatId; so we must also ensure
+      // the selected linked user is a member of the approval's workspace.
+      const links = await db
+        .select({
+          link: telegramLinks,
+          member: workspaceMembers,
+        })
+        .from(telegramLinks)
+        .leftJoin(
+          workspaceMembers,
+          and(
+            eq(workspaceMembers.userId, telegramLinks.userId),
+            eq(workspaceMembers.workspaceId, approvalRequest.workspaceId)
+          )
+        )
+        .where(eq(telegramLinks.chatId, chatId));
+
+      const link = links.find((r) => r.member)?.link;
+
+      if (!link) {
         await answerCallbackQuery(
           update.callback_query.id,
-          `Already ${approval.status}`
+          "You're not linked to a workspace member for this approval. If you're using a group chat, link your Telegram in a DM with the bot, or make sure your linked Latch account is a member of this workspace."
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // Approval request already loaded above
+
+      if (approvalRequest.status !== "pending") {
+        await answerCallbackQuery(
+          update.callback_query.id,
+          `Already ${approvalRequest.status}`
         );
         return NextResponse.json({ ok: true });
       }
@@ -132,7 +155,7 @@ export async function POST(request: NextRequest) {
         .from(workspaceMembers)
         .where(
           and(
-            eq(workspaceMembers.workspaceId, approval.workspaceId),
+            eq(workspaceMembers.workspaceId, approvalRequest.workspaceId),
             eq(workspaceMembers.userId, link.userId)
           )
         );
@@ -169,12 +192,24 @@ export async function POST(request: NextRequest) {
             link.firstName || link.username || undefined
           );
 
-          // Send the token to the chat
-          await sendTelegramMessage(
-            chatId,
-            `🔑 <b>Approval Token</b>\n\n<code>${result.token}</code>\n\n<i>This token expires at ${result.expiresAt.toISOString()}</i>`,
-            { parseMode: "HTML" }
-          );
+          // Only send a raw token when it's actually useful to the client.
+          // OpenClaw-native flow auto-resumes after approval via polling, so sending tokens is noisy/confusing.
+          const toolName = String(originalRequest.toolName || "");
+          const isOpenClawNative = toolName.toLowerCase().startsWith("openclaw:");
+
+          if (!isOpenClawNative) {
+            await sendTelegramMessage(
+              chatId,
+              `🔑 <b>Approval Token</b>\n\n<code>${result.token}</code>\n\n<i>This token expires at ${result.expiresAt.toISOString()}</i>`,
+              { parseMode: "HTML" }
+            );
+          } else {
+            await sendTelegramMessage(
+              chatId,
+              `✅ <b>Approved</b>\n\n<i>Continuing automatically in OpenClaw…</i>`,
+              { parseMode: "HTML" }
+            );
+          }
         } else if (action === "deny") {
           await denyRequest(approvalId, link.userId);
 

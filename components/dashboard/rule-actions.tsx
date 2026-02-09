@@ -28,7 +28,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MoreHorizontal, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { MoreHorizontal, Pencil, Trash2, Loader2, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Rule {
@@ -39,6 +40,7 @@ interface Rule {
   toolName: string | null;
   domainMatch: string | null;
   domainMatchType: string | null;
+  smartCondition: string | null;
   priority: number;
   enabled: boolean;
 }
@@ -183,10 +185,52 @@ function EditRuleDialog({
   const [effect, setEffect] = useState(rule.effect);
   const [actionClass, setActionClass] = useState(rule.actionClass);
   const [toolName, setToolName] = useState(rule.toolName || "");
+
+  const openclawNativeToolOptions: string[] = [
+    "openclaw:read",
+    "openclaw:write",
+    "openclaw:edit",
+    "openclaw:exec",
+    "openclaw:process",
+    "openclaw:browser",
+    "openclaw:web_search",
+    "openclaw:web_fetch",
+    "openclaw:message",
+    "openclaw:tts",
+    "openclaw:cron",
+    "openclaw:sessions_list",
+    "openclaw:sessions_history",
+    "openclaw:sessions_send",
+    "openclaw:sessions_spawn",
+    "openclaw:agents_list",
+    "openclaw:session_status",
+    "openclaw:nodes",
+    "openclaw:canvas",
+    "openclaw:image",
+    "openclaw:gateway",
+    "openclaw:memory_search",
+    "openclaw:memory_get",
+  ];
+
+  const isOpenClawTool = toolName.startsWith("openclaw:") || (rule.toolName || "").startsWith("openclaw:");
+  const showOpenClawToolPicker = isOpenClawTool;
+
   const [domainMatch, setDomainMatch] = useState(rule.domainMatch || "");
+  const [domainMatchType, setDomainMatchType] = useState(rule.domainMatchType || "exact");
   const [priority, setPriority] = useState(rule.priority.toString());
+  const [isSmartRule, setIsSmartRule] = useState(!!rule.smartCondition);
+  const [smartCondition, setSmartCondition] = useState(rule.smartCondition || "");
 
   const handleSave = async () => {
+    if (isSmartRule && !smartCondition.trim()) {
+      toast({
+        title: "Error",
+        description: "Smart rules require a condition",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(`/api/rules/${rule.id}`, {
@@ -195,9 +239,11 @@ function EditRuleDialog({
         body: JSON.stringify({
           name: name || null,
           effect,
-          actionClass,
+          actionClass: isSmartRule ? "any" : actionClass,
           toolName: toolName || null,
-          domainMatch: domainMatch || null,
+          domainMatch: isSmartRule ? null : (domainMatch || null),
+          domainMatchType: isSmartRule ? null : (domainMatch ? domainMatchType : null),
+          smartCondition: isSmartRule ? smartCondition.trim() : null,
           priority: parseInt(priority) || 50,
         }),
       });
@@ -232,31 +278,71 @@ function EditRuleDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Smart Rule Toggle */}
+          <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-violet-500" />
+              <div>
+                <Label htmlFor="edit-smart-rule" className="text-sm font-medium">
+                  Smart Rule (AI-powered)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Use natural language to define when this rule triggers
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="edit-smart-rule"
+              checked={isSmartRule}
+              onCheckedChange={setIsSmartRule}
+            />
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
+            <Label htmlFor="edit-name">Name</Label>
             <Input
-              id="name"
+              id="edit-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Optional rule name"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Effect</Label>
-              <Select value={effect} onValueChange={setEffect}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="allow">Allow</SelectItem>
-                  <SelectItem value="deny">Deny</SelectItem>
-                  <SelectItem value="require_approval">Require Approval</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Effect</Label>
+            <Select value={effect} onValueChange={setEffect}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="allow">Allow</SelectItem>
+                <SelectItem value="deny">Deny</SelectItem>
+                <SelectItem value="require_approval">Require Approval</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
+          {/* Smart Rule Condition */}
+          {isSmartRule && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-smartCondition">
+                Condition <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="edit-smartCondition"
+                placeholder="Describe when this rule should trigger, e.g.:&#10;&#10;• Searches targeting sensitive files like .env, passwords, SSH keys&#10;• File operations outside the project directory"
+                value={smartCondition}
+                onChange={(e) => setSmartCondition(e.target.value)}
+                className="min-h-[100px]"
+              />
+              <p className="text-xs text-muted-foreground">
+                An AI will evaluate each tool call against this condition.
+              </p>
+            </div>
+          )}
+
+          {/* Pattern-based fields (hidden for smart rules) */}
+          {!isSmartRule && (
             <div className="space-y-2">
               <Label>Action Class</Label>
               <Select value={actionClass} onValueChange={setActionClass}>
@@ -274,34 +360,128 @@ function EditRuleDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
-            <Label htmlFor="toolName">Tool Name (optional)</Label>
-            <Input
-              id="toolName"
-              value={toolName}
-              onChange={(e) => setToolName(e.target.value)}
-                placeholder="e.g., shell_exec"
-              className="font-mono"
-            />
+            <Label htmlFor="edit-toolName">Tool (optional)</Label>
+            {showOpenClawToolPicker ? (
+              <Select
+                value={toolName || "any"}
+                onValueChange={(v) => setToolName(v === "any" ? "" : v)}
+              >
+                <SelectTrigger className="font-mono">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any tool</SelectItem>
+                  {openclawNativeToolOptions.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="edit-toolName"
+                value={toolName}
+                onChange={(e) => setToolName(e.target.value)}
+                placeholder={isOpenClawTool ? "e.g., openclaw:browser" : "e.g., shell_exec"}
+                className="font-mono"
+              />
+            )}
+            {showOpenClawToolPicker ? (
+              <p className="text-xs text-muted-foreground">
+                OpenClaw native tools use <span className="font-mono">openclaw:*</span> names.
+              </p>
+            ) : null}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="domainMatch">Domain Match (optional)</Label>
-            <Input
-              id="domainMatch"
-              value={domainMatch}
-              onChange={(e) => setDomainMatch(e.target.value)}
-              placeholder="e.g., github.com"
-              className="font-mono"
-            />
-          </div>
+          {!isSmartRule && (
+            <div className="space-y-3">
+              {/* Browser presets for OpenClaw */}
+              {toolName === "openclaw:browser" ? (
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <div className="text-xs text-muted-foreground">
+                    Browser presets (deterministic)
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEffect("require_approval");
+                        setActionClass("submit");
+                        setDomainMatchType("suffix");
+                        if (!domainMatch) setDomainMatch("linkedin.com");
+                      }}
+                    >
+                      Require approval for domain
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEffect("deny");
+                        setActionClass("submit");
+                        setDomainMatchType("suffix");
+                      }}
+                    >
+                      Block domain
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEffect("allow");
+                        setActionClass("submit");
+                        setDomainMatchType("suffix");
+                      }}
+                    >
+                      Allow domain
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Tip: use <span className="font-mono">suffix</span> match for domains like
+                    <span className="font-mono"> linkedin.com</span> to include subdomains.
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2 grid gap-2">
+                  <Label htmlFor="edit-domainMatch">Domain / Host match (optional)</Label>
+                  <Input
+                    id="edit-domainMatch"
+                    value={domainMatch}
+                    onChange={(e) => setDomainMatch(e.target.value)}
+                    placeholder={toolName === "openclaw:browser" ? "e.g., linkedin.com" : "e.g., github.com"}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Match Type</Label>
+                  <Select value={domainMatchType} onValueChange={setDomainMatchType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="exact">Exact</SelectItem>
+                      <SelectItem value="suffix">Suffix</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
-            <Label htmlFor="priority">Priority (0-100)</Label>
+            <Label htmlFor="edit-priority">Priority (0-100)</Label>
             <Input
-              id="priority"
+              id="edit-priority"
               type="number"
               min="0"
               max="100"

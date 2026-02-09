@@ -57,7 +57,39 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
   const selectedUpstream =
     upstreamId === "any" ? undefined : upstreams?.find((u) => u.id === upstreamId);
 
+  const openclawNativeToolOptions: string[] = [
+    "openclaw:read",
+    "openclaw:write",
+    "openclaw:edit",
+    "openclaw:exec",
+    "openclaw:process",
+    "openclaw:browser",
+    "openclaw:web_search",
+    "openclaw:web_fetch",
+    "openclaw:message",
+    "openclaw:tts",
+    "openclaw:cron",
+    "openclaw:sessions_list",
+    "openclaw:sessions_history",
+    "openclaw:sessions_send",
+    "openclaw:sessions_spawn",
+    "openclaw:agents_list",
+    "openclaw:session_status",
+    "openclaw:nodes",
+    "openclaw:canvas",
+    "openclaw:image",
+    "openclaw:gateway",
+    "openclaw:memory_search",
+    "openclaw:memory_get",
+  ];
+
+  const isOpenClawUpstream = Boolean(
+    selectedUpstream?.name && selectedUpstream.name.toLowerCase().includes("openclaw")
+  );
+
   const toolOptions: string[] = (() => {
+    if (isOpenClawUpstream) return openclawNativeToolOptions;
+
     if (!selectedUpstream?.tools || !Array.isArray(selectedUpstream.tools)) return [];
     const names: string[] = [];
     for (const t of selectedUpstream.tools) {
@@ -249,7 +281,7 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="toolName">Tool Name (optional)</Label>
+            <Label htmlFor="toolName">Tool (optional)</Label>
             {toolOptions.length > 0 ? (
               <Select value={toolName || "any"} onValueChange={(v) => setToolName(v === "any" ? "" : v)}>
                 <SelectTrigger className="font-mono">
@@ -267,38 +299,97 @@ export function CreateRuleDialog({ workspaceId, upstreams }: CreateRuleDialogPro
             ) : (
               <Input
                 id="toolName"
-                placeholder="e.g., github_create_pr"
+                placeholder={isOpenClawUpstream ? "e.g., openclaw:browser" : "e.g., github_create_pr"}
                 value={toolName}
                 onChange={(e) => setToolName(e.target.value)}
                 className="font-mono"
               />
             )}
+            {isOpenClawUpstream ? (
+              <p className="text-xs text-muted-foreground">
+                For OpenClaw native tools, use the <span className="font-mono">openclaw:*</span> tool names.
+              </p>
+            ) : null}
           </div>
 
           {/* Domain match only for pattern rules */}
           {!isSmartRule && (
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 grid gap-2">
-                <Label htmlFor="domainMatch">Domain Match (optional)</Label>
-                <Input
-                  id="domainMatch"
-                  placeholder="e.g., github.com"
-                  value={domainMatch}
-                  onChange={(e) => setDomainMatch(e.target.value)}
-                  className="font-mono"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>Match Type</Label>
-                <Select value={domainMatchType} onValueChange={setDomainMatchType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="exact">Exact</SelectItem>
-                    <SelectItem value="suffix">Suffix</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="space-y-3">
+              {/* Browser presets for OpenClaw */}
+              {toolName === "openclaw:browser" ? (
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <div className="text-xs text-muted-foreground">
+                    Browser presets (deterministic)
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEffect("require_approval");
+                        setActionClass("submit");
+                        setDomainMatchType("suffix");
+                        if (!domainMatch) setDomainMatch("linkedin.com");
+                      }}
+                    >
+                      Require approval for domain
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEffect("deny");
+                        setActionClass("submit");
+                        setDomainMatchType("suffix");
+                      }}
+                    >
+                      Block domain
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEffect("allow");
+                        setActionClass("submit");
+                        setDomainMatchType("suffix");
+                      }}
+                    >
+                      Allow domain
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Tip: use <span className="font-mono">suffix</span> match for domains like
+                    <span className="font-mono"> linkedin.com</span> to include subdomains.
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2 grid gap-2">
+                  <Label htmlFor="domainMatch">Domain / Host match (optional)</Label>
+                  <Input
+                    id="domainMatch"
+                    placeholder={toolName === "openclaw:browser" ? "e.g., linkedin.com" : "e.g., github.com"}
+                    value={domainMatch}
+                    onChange={(e) => setDomainMatch(e.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Match Type</Label>
+                  <Select value={domainMatchType} onValueChange={setDomainMatchType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="exact">Exact</SelectItem>
+                      <SelectItem value="suffix">Suffix</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           )}

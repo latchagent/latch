@@ -81,18 +81,21 @@ export async function GET(request: NextRequest) {
       );
 
     if (tokenRecord && tokenRecord.rawToken) {
-      // Mark as retrieved and return the token
+      const rawToken = tokenRecord.rawToken;
+
+      // Mark as retrieved and clear the raw token after retrieval.
+      // IMPORTANT: keep a local copy so we can return it in this response.
       await db
         .update(approvalTokens)
-        .set({ 
+        .set({
           retrievedAt: new Date(),
-          rawToken: null, // Clear the raw token after retrieval
+          rawToken: null,
         })
         .where(eq(approvalTokens.id, tokenRecord.id));
 
       return NextResponse.json({
         status: "approved",
-        token: tokenRecord.rawToken,
+        token: rawToken,
       });
     }
 

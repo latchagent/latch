@@ -69,7 +69,7 @@ export default async function RulesPage() {
         <CardHeader>
           <CardTitle className="text-lg">Default Policies</CardTitle>
           <CardDescription>
-            These defaults apply when no explicit rule matches.
+            All actions are allowed by default. Create rules above to restrict specific actions.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -87,21 +87,21 @@ export default async function RulesPage() {
             <DefaultPolicyCard
               action="SEND"
               effect="allow"
-              description="External requires approval"
+              description="Messages & emails"
             />
             <DefaultPolicyCard
               action="EXECUTE"
-              effect="require_approval"
+              effect="allow"
               description="Shell/script execution"
             />
             <DefaultPolicyCard
               action="SUBMIT"
-              effect="require_approval"
+              effect="allow"
               description="Form submissions"
             />
             <DefaultPolicyCard
               action="TRANSFER"
-              effect="deny"
+              effect="allow"
               description="Payment/transfers"
             />
           </div>

@@ -40,6 +40,11 @@
         "minimum": 1,
         "default": 300
       },
+      "failClosed": {
+        "type": "boolean",
+        "description": "If true, block tool calls when Latch is unreachable/errors. If false (default), allow tool calls and log the error.",
+        "default": false
+      },
       "logFile": {
         "type": "string",
         "description": "Optional log file path",
@@ -55,6 +60,7 @@
     "agentKey": { "label": "Agent Key", "sensitive": true },
     "waitForApproval": { "label": "Wait for approval" },
     "approvalTimeoutSeconds": { "label": "Approval timeout (seconds)" },
+    "failClosed": { "label": "Fail closed (block if Latch unreachable)" },
     "logFile": { "label": "Log file" }
   }
 }

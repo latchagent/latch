@@ -43,6 +43,7 @@ export function ExportConfigDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [agentKey, setAgentKey] = useState("YOUR_AGENT_KEY");
+  const [openclawPluginPath, setOpenclawPluginPath] = useState("");
 
   const claudeRemoteHttpSnippet = useMemo(() => {
     if (upstream.transport !== "http" || !upstream.baseUrl) return null;
@@ -173,38 +174,34 @@ export function ExportConfigDialog({
     const isOpenClaw = upstream.name === "openclaw-native" || upstream.name.startsWith("openclaw");
     if (!isOpenClaw) return null;
 
+    const baseUrl = cloudUrl.replace(/\/$/, "");
+
+    // Entry-only snippet: paste under `plugins.entries`.
+    // (OpenClaw config validation will fail if the plugin isn't installed/loaded yet.)
     return (
       `{
 ` +
-      `  // ~/.openclaw/openclaw.json (snippet)
+      `  // ~/.openclaw/openclaw.json → plugins.entries (snippet)
 ` +
-      `  "plugins": {
+      `  "openclaw-latch-guard": {
 ` +
-      `    "entries": {
+      `    "enabled": true,
 ` +
-      `      "openclaw-latch-guard": {
+      `    "config": {
 ` +
-      `        "enabled": true,
+      `      "mode": "enforce",
 ` +
-      `        "config": {
+      `      "baseUrl": "${baseUrl}",
 ` +
-      `          "mode": "enforce",
+      `      "workspaceId": "${workspaceId}",
 ` +
-      `          "baseUrl": "${cloudUrl.replace(/\/$/, "")}",
+      `      "upstreamId": "${upstream.id}",
 ` +
-      `          "workspaceId": "${workspaceId}",
+      `      "agentKey": "${agentKey}",
 ` +
-      `          "upstreamId": "${upstream.id}",
+      `      "waitForApproval": true,
 ` +
-      `          "agentKey": "${agentKey}",
-` +
-      `          "waitForApproval": true,
-` +
-      `          "approvalTimeoutSeconds": 600
-` +
-      `        }
-` +
-      `      }
+      `      "approvalTimeoutSeconds": 600${openclawPluginPath ? `,\n      \"pluginPath\": \"${openclawPluginPath}\"` : ""}
 ` +
       `    }
 ` +
@@ -212,7 +209,7 @@ export function ExportConfigDialog({
 ` +
       `}`
     );
-  }, [agentKey, cloudUrl, upstream.id, upstream.name, workspaceId]);
+  }, [agentKey, cloudUrl, openclawPluginPath, upstream.id, upstream.name, workspaceId]);
 
   const defaultTab = openclawPluginSnippet ? "openclaw" : upstream.transport === "http" ? "http" : "stdio";
 
@@ -248,10 +245,26 @@ export function ExportConfigDialog({
               the snippet locally in your browser.
             </p>
             {openclawPluginSnippet ? (
-              <p className="text-xs text-muted-foreground">
-                OpenClaw plugin export uses your current Latch URL ( <span className="font-mono">{cloudUrl}</span> ) as the
-                <span className="font-mono"> baseUrl</span>. If you are running Latch on a different port (e.g. 3001), open the dashboard on that port before exporting.
-              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  OpenClaw plugin export uses your current Latch URL ( <span className="font-mono">{cloudUrl}</span> ) as the
+                  <span className="font-mono"> baseUrl</span>. If you are running Latch on a different port (e.g. 3001), open the dashboard on that port before exporting.
+                </p>
+                <div className="grid gap-2">
+                  <Label htmlFor="openclawPluginPath">OpenClaw plugin path (optional)</Label>
+                  <Input
+                    id="openclawPluginPath"
+                    value={openclawPluginPath}
+                    onChange={(e) => setOpenclawPluginPath(e.target.value)}
+                    className="font-mono"
+                    placeholder="/Users/you/code/latch/packages/openclaw-latch-guard"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use this if you are loading the plugin from a local dev checkout. (Example: this will correspond to
+                    <span className="font-mono"> plugins.load.paths</span> in your OpenClaw config.)
+                  </p>
+                </div>
+              </div>
             ) : null}
           </div>
 
@@ -273,12 +286,23 @@ export function ExportConfigDialog({
 
             <TabsContent value="openclaw">
               {openclawPluginSnippet ? (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    Paste this into <span className="font-mono">~/.openclaw/openclaw.json</span> under your
-                    existing config. Then restart the gateway.
-                  </p>
-                  <SnippetBlock value={openclawPluginSnippet} label="OpenClaw JSON" />
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      1) Install (local dev):
+                      <span className="font-mono"> openclaw plugins install -l &lt;path-to-openclaw-latch-guard&gt;</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      2) Add the entry below under <span className="font-mono">plugins.entries</span> in
+                      <span className="font-mono"> ~/.openclaw/openclaw.json</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      3) Restart:
+                      <span className="font-mono"> openclaw gateway restart</span>
+                    </p>
+                  </div>
+
+                  <SnippetBlock value={openclawPluginSnippet} label="OpenClaw JSON (entry-only)" />
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">

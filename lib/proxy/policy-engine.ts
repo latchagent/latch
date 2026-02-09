@@ -292,18 +292,6 @@ export async function evaluatePolicy(ctx: PolicyContext): Promise<PolicyDecision
   // 3) Fall back to defaults based on action class
   const defaultDecision = getDefaultDecision(ctx.actionClass);
 
-  // Special case: SEND to external domain requires approval by default
-  if (
-    ctx.actionClass === "send" &&
-    ctx.riskFlags.external_domain &&
-    defaultDecision === "allowed"
-  ) {
-    return {
-      decision: "approval_required",
-      reason: "External send operations require approval by default",
-    };
-  }
-
   return {
     decision: defaultDecision,
     reason: `Default policy for action class: ${ctx.actionClass}`,

@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Otherwise, evaluate policy
-    return handleFreshRequest(input, agent.id);
+    return handleFreshRequest(input, agent.id, request.nextUrl.origin);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -217,7 +217,8 @@ async function handleTokenRetry(
  */
 async function handleFreshRequest(
   input: AuthorizeInput,
-  agentId: string
+  agentId: string,
+  origin: string
 ): Promise<NextResponse> {
   // Fetch rules and leases for the workspace
   const [rules, leases] = await Promise.all([
@@ -269,7 +270,9 @@ async function handleFreshRequest(
       argsHash: input.args_hash,
       requestHash: input.request_hash,
       decision: "approval_required",
-      denialReason: null,
+      // NOTE: `denialReason` is used in the UI audit log; we store the policy reason here
+      // for non-allowed decisions (including approvals) so users can debug rule matches.
+      denialReason: decision.reason,
     })
     .returning();
 
@@ -289,12 +292,18 @@ async function handleFreshRequest(
   // Trigger notification asynchronously
   triggerNotification(approvalRequest.id);
 
+  const approvalUrl = `${origin.replace(/\/$/, "")}/approvals`;
+
   return NextResponse.json({
     decision: "approval_required",
     reason: decision.reason,
     request_id: requestRecord.id,
     approval_request_id: approvalRequest.id,
     expires_at: expiresAt.toISOString(),
+    // UX helpers (additive; safe for older clients)
+    approval_url: approvalUrl,
+    next_steps:
+      "Approval required. Open the Latch dashboard Approvals page to approve/deny. If your client supports it, it will auto-resume after approval.",
   });
 }
 
@@ -539,26 +548,15 @@ function leaseMatches(
 }
 
 /**
- * Get default decision based on action class
+ * Get default decision based on action class.
+ *
+ * All action classes default to "allowed". Users can create rules to restrict
+ * specific actions (deny or require approval) for their workspace.
  */
 function getDefaultDecision(
   input: AuthorizeInput
 ): { decision: "allowed" | "denied" | "approval_required"; reason: string } {
-  switch (input.action_class) {
-    case "execute":
-      return { decision: "approval_required", reason: "Execute actions require approval by default" };
-    case "submit":
-      return { decision: "approval_required", reason: "Submit actions require approval by default" };
-    case "transfer_value":
-      return { decision: "denied", reason: "Transfer actions are denied by default" };
-    case "send":
-      if (input.risk_flags.external_domain) {
-        return { decision: "approval_required", reason: "External send requires approval" };
-      }
-      return { decision: "allowed", reason: "Default allow for internal send" };
-    default:
-      return { decision: "allowed", reason: "Default allow" };
-  }
+  return { decision: "allowed", reason: "Default allow" };
 }
 
 /**

@@ -73,17 +73,38 @@ async function waitForApproval({ baseUrl, agentKey, approvalRequestId, timeoutMs
 // Minimal classification for native OpenClaw tools (we’ll refine later)
 function classifyOpenClawToolCall(toolName, params) {
   const n = String(toolName || "").toLowerCase();
-  if (n === "read" || n === "memory_get" || n === "memory_search" || n === "sessions_list" || n === "sessions_history") {
+  if (
+    n === "read" ||
+    n === "memory_get" ||
+    n === "memory_search" ||
+    n === "sessions_list" ||
+    n === "sessions_history"
+  ) {
     return { action_class: "read", risk_level: "low" };
   }
   if (n === "browser") {
     const action = String(params?.action || "").toLowerCase();
-    const risky = ["act", "navigate", "upload", "fill", "type", "press", "click", "dialog"].includes(action);
+    const risky = ["act", "navigate", "upload", "fill", "type", "press", "click", "dialog", "open"].includes(action);
     return { action_class: risky ? "submit" : "read", risk_level: risky ? "high" : "med" };
   }
   if (n === "message") return { action_class: "send", risk_level: "high" };
   if (n === "exec" || n === "nodes") return { action_class: "execute", risk_level: "critical" };
   return { action_class: "write", risk_level: "med" };
+}
+
+function extractUrlFromBrowserParams(params) {
+  const action = String(params?.action || "").toLowerCase();
+  if (action === "open" || action === "navigate") return params?.targetUrl;
+  return undefined;
+}
+
+function safeParseUrl(u) {
+  try {
+    if (!u) return null;
+    return new URL(String(u));
+  } catch {
+    return null;
+  }
 }
 
 export default {
@@ -114,6 +135,7 @@ export default {
         const agentKey = cfg.agentKey;
         const wait = cfg.waitForApproval !== false;
         const timeoutMs = (cfg.approvalTimeoutSeconds || 300) * 1000;
+        const failClosed = cfg.failClosed === true;
 
         if (!workspaceId || !upstreamId || !agentKey) {
           // Safe defaults: do NOT block OpenClaw when misconfigured.
@@ -126,6 +148,11 @@ export default {
 
         const { action_class, risk_level } = classifyOpenClawToolCall(toolName, params);
 
+        const browserUrl = toolName === "browser" ? extractUrlFromBrowserParams(params) : undefined;
+        const parsedUrl = safeParseUrl(browserUrl);
+        const urlHost = parsedUrl?.host;
+        const urlPath = parsedUrl?.pathname;
+
         // We do not have redaction/hashing wired yet; keep payload minimal.
         // NOTE: args_redacted intentionally includes only high-level metadata.
         const req = {
@@ -136,20 +163,24 @@ export default {
           action_class,
           risk_level,
           risk_flags: {
-            external_domain: false,
+            external_domain: Boolean(urlHost),
             new_recipient: false,
             attachment: false,
             form_submit: action_class === "submit",
             shell_exec: toolName === "exec" || toolName === "nodes",
             destructive: false,
           },
-          resource: {},
+          resource: {
+            ...(urlHost ? { urlHost } : {}),
+            ...(urlPath ? { urlPath } : {}),
+          },
           args_hash: "openclaw-v0",
           request_hash: "openclaw-v0",
           args_redacted: {
             tool: toolName,
             // keep params shallow; we can add a real redactor next
             action: params?.action,
+            ...(browserUrl ? { url: String(browserUrl) } : {}),
           },
         };
 
@@ -166,7 +197,14 @@ export default {
 
           if (out.decision === "approval_required") {
             if (!wait || !out.approval_request_id) {
-              return { block: true, blockReason: `Latch approval required: ${out.reason}` };
+              const approvalUrl = out.approval_url ? `\nApprove/deny: ${out.approval_url}` : "";
+              const idLine = out.approval_request_id ? `\nApproval id: ${out.approval_request_id}` : "";
+              const tokenLine =
+                "\nIf your UI shows an approval token, paste it into the next attempt (as approval_token) or run the same action again after approving.";
+              return {
+                block: true,
+                blockReason: `Latch approval required: ${out.reason}${idLine}${approvalUrl}${tokenLine}`,
+              };
             }
 
             await appendLine(logFile, `[${new Date().toISOString()}] waiting approval ${out.approval_request_id}`);
@@ -194,7 +232,15 @@ export default {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           ctx?.logger?.warn?.(`latch-guard authorize error: ${msg}`);
-          return { block: true, blockReason: `Latch error: ${msg}` };
+          if (failClosed) {
+            return { block: true, blockReason: `Latch error: ${msg}` };
+          }
+
+          await appendLine(
+            logFile,
+            `[${new Date().toISOString()}] latch_unreachable allowing tool=${toolName} err=${msg}`
+          );
+          return undefined;
         }
       },
       { priority: 100 }

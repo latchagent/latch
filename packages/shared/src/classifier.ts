@@ -322,28 +322,14 @@ export function classifyToolCall(
 }
 
 /**
- * Get default decision for an action class
+ * Get default decision for an action class.
+ *
+ * All action classes default to "allowed". Users can create rules to restrict
+ * specific actions (deny or require approval) for their workspace.
  */
 export function getDefaultDecision(
   actionClass: ActionClass,
   riskFlags?: RiskFlags
 ): "allowed" | "denied" | "approval_required" {
-  switch (actionClass) {
-    case "execute":
-      return "approval_required";
-    case "submit":
-      return "approval_required";
-    case "transfer_value":
-      return "denied";
-    case "send":
-      // External send requires approval by default
-      if (riskFlags?.external_domain) {
-        return "approval_required";
-      }
-      return "allowed";
-    case "read":
-    case "write":
-    default:
-      return "allowed";
-  }
+  return "allowed";
 }

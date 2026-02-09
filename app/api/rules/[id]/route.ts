@@ -16,6 +16,7 @@ const updateRuleSchema = z.object({
   domainMatchType: z.enum(["exact", "suffix"]).optional(),
   priority: z.number().min(0).max(100).optional(),
   enabled: z.boolean().optional(),
+  smartCondition: z.string().nullable().optional(),
 });
 
 export async function PATCH(
@@ -55,6 +56,7 @@ export async function PATCH(
         // Handle null vs undefined for optional fields
         toolName: data.toolName === null ? null : data.toolName ?? rule.toolName,
         domainMatch: data.domainMatch === null ? null : data.domainMatch ?? rule.domainMatch,
+        smartCondition: data.smartCondition === null ? null : data.smartCondition ?? rule.smartCondition,
       })
       .where(eq(policyRules.id, id))
       .returning();

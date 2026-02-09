@@ -70,6 +70,7 @@ export default async function AuditPage() {
                     <TableHead>Agent</TableHead>
                     <TableHead>Upstream</TableHead>
                     <TableHead>Resource</TableHead>
+                    <TableHead>Reason</TableHead>
                     <TableHead>Time</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -100,6 +101,9 @@ export default async function AuditPage() {
                         {(request.resource as { domain?: string })?.domain ||
                           (request.resource as { urlHost?: string })?.urlHost ||
                           "—"}
+                      </TableCell>
+                      <TableCell className="max-w-[240px] truncate text-xs text-muted-foreground">
+                        {request.denialReason || request.summary || "—"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatTime(request.createdAt)}

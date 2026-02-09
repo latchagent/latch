@@ -2,15 +2,27 @@
  * Smart Rules - LLM-powered policy evaluation
  *
  * Evaluates tool calls against natural language conditions using an LLM.
- * This allows for flexible, human-readable security rules like:
+ * Uses Vercel AI SDK with structured output (Zod schema) for reliable responses.
+ *
+ * Examples:
  * - "Block searches targeting sensitive files like .env, passwords, SSH keys"
  * - "Require approval for any file operations outside the project directory"
  */
 
-// Simple OpenAI-compatible API call
-// Uses OPENAI_API_KEY env var, falls back to a basic heuristic if not set
+import { generateObject } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { z } from "zod";
 
-interface SmartRuleEvaluation {
+const smartRuleSchema = z.object({
+  matches: z
+    .boolean()
+    .describe("True if the tool call matches/violates the security condition"),
+  reason: z
+    .string()
+    .describe("Brief explanation of why the tool call does or does not match"),
+});
+
+export interface SmartRuleEvaluation {
   matches: boolean;
   reason: string;
 }
@@ -31,66 +43,16 @@ export async function evaluateSmartCondition(
   }
 
   try {
-    const prompt = buildPrompt(toolName, args, condition);
+    const argsStr = JSON.stringify(args, null, 2);
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `You are a security policy evaluator. Your job is to determine if a tool call matches a security condition.
+    const result = await generateObject({
+      model: openai("gpt-4o-mini"),
+      schema: smartRuleSchema,
+      system: `You are a security policy evaluator. Your job is to determine if a tool call matches a security condition.
 
-Respond with a JSON object containing:
-- "matches": boolean (true if the tool call matches/violates the condition)
-- "reason": string (brief explanation)
-
-Be security-conscious: when in doubt, err on the side of matching (blocking) to protect sensitive data.`,
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0,
-        max_tokens: 150,
-      }),
-    });
-
-    if (!response.ok) {
-      console.error("[smart-rules] OpenAI API error:", response.status);
-      return fallbackEvaluation(toolName, args, condition);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      return fallbackEvaluation(toolName, args, condition);
-    }
-
-    // Parse the JSON response
-    const parsed = parseJsonResponse(content);
-    return parsed ?? fallbackEvaluation(toolName, args, condition);
-  } catch (error) {
-    console.error("[smart-rules] Error evaluating condition:", error);
-    return fallbackEvaluation(toolName, args, condition);
-  }
-}
-
-function buildPrompt(
-  toolName: string,
-  args: unknown,
-  condition: string
-): string {
-  const argsStr = JSON.stringify(args, null, 2);
-
-  return `Evaluate if this tool call matches the security condition.
+Be security-conscious: when in doubt, err on the side of matching (blocking) to protect sensitive data.
+Only match when the tool call is genuinely relevant to the condition. Do not match unrelated tool calls.`,
+      prompt: `Evaluate if this tool call matches the security condition.
 
 **Tool:** ${toolName}
 
@@ -102,24 +64,17 @@ ${argsStr}
 **Security Condition:**
 ${condition}
 
-Does this tool call match the condition? Respond with JSON: {"matches": true/false, "reason": "..."}`;
-}
-
-function parseJsonResponse(content: string): SmartRuleEvaluation | null {
-  try {
-    // Try to extract JSON from the response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-
-    const parsed = JSON.parse(jsonMatch[0]);
-    if (typeof parsed.matches !== "boolean") return null;
+Does this tool call match the condition?`,
+      temperature: 0,
+    });
 
     return {
-      matches: parsed.matches,
-      reason: parsed.reason || "No reason provided",
+      matches: result.object.matches,
+      reason: result.object.reason,
     };
-  } catch {
-    return null;
+  } catch (error) {
+    console.error("[smart-rules] Error evaluating condition:", error);
+    return fallbackEvaluation(toolName, args, condition);
   }
 }
 
