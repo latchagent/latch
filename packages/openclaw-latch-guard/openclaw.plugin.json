@@ -1,0 +1,61 @@
+{
+  "id": "openclaw-latch-guard",
+  "name": "Latch Guard",
+  "version": "0.1.0",
+  "description": "Enforce Latch policies on OpenClaw native + MCP tool calls via before_tool_call.",
+  "entry": "./index.js",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": ["monitor", "enforce"],
+        "default": "enforce"
+      },
+      "baseUrl": {
+        "type": "string",
+        "description": "Latch base URL (local dashboard), e.g. http://localhost:3000",
+        "default": "http://localhost:3000"
+      },
+      "workspaceId": {
+        "type": "string",
+        "description": "Latch workspace UUID"
+      },
+      "upstreamId": {
+        "type": "string",
+        "description": "Latch upstream UUID (use a dedicated upstream for OpenClaw native tools)"
+      },
+      "agentKey": {
+        "type": "string",
+        "description": "Latch agent key for this OpenClaw instance"
+      },
+      "waitForApproval": {
+        "type": "boolean",
+        "description": "If approval is required, poll Latch until approved and then execute automatically.",
+        "default": true
+      },
+      "approvalTimeoutSeconds": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 300
+      },
+      "logFile": {
+        "type": "string",
+        "description": "Optional log file path",
+        "default": "~/.openclaw/workspace/latch-guard-toolcalls.log"
+      }
+    },
+    "required": ["workspaceId", "upstreamId", "agentKey"]
+  },
+  "uiHints": {
+    "mode": { "label": "Mode" },
+    "baseUrl": { "label": "Latch URL", "placeholder": "http://localhost:3000" },
+    "workspaceId": { "label": "Workspace ID" },
+    "upstreamId": { "label": "Upstream ID" },
+    "agentKey": { "label": "Agent Key", "sensitive": true },
+    "waitForApproval": { "label": "Wait for approval" },
+    "approvalTimeoutSeconds": { "label": "Approval timeout (seconds)" },
+    "logFile": { "label": "Log file" }
+  }
+}
