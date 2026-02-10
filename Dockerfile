@@ -17,6 +17,11 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# BetterAuth requires a secret even during build-time rendering.
+# This is a safe dummy value for container builds/tests; production should override via env.
+ARG BETTER_AUTH_SECRET=build-time-secret
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+
 # Build shared packages first
 RUN npm run build -w @latchagent/shared
 

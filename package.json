@@ -22,7 +22,9 @@
     "test": "npm run test --workspace=@latchagent/test-harness",
     "test:unit": "npx tsx packages/test-harness/src/unit-tests.ts",
     "test:scenarios": "npx tsx packages/test-harness/src/run-scenarios.ts",
-    "test:setup": "curl -X POST http://localhost:3000/api/test/setup -H 'Content-Type: application/json' -d '{}'"
+    "test:setup": "curl -X POST http://localhost:3000/api/test/setup -H 'Content-Type: application/json' -d '{}'",
+    "test:smoke": "npx tsx scripts/test/smoke.ts",
+    "test:docker": "docker compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.25",

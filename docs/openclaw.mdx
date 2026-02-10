@@ -28,7 +28,7 @@ Open the dashboard:
 In the Latch dashboard:
 
 1. Create a **Workspace** (or use your existing one)
-2. Create an **Agent Key** (Settings → API Keys)
+2. Create an **Agent Key** (Agents page)
 3. Create an **Upstream** for OpenClaw native tools
    - Name suggestion: `openclaw-native`
    - Transport can be anything; for native tool gating we primarily use it as a policy scope
@@ -64,7 +64,8 @@ Edit `~/.openclaw/openclaw.json`:
           "upstreamId": "<YOUR_UPSTREAM_UUID>",
           "agentKey": "<YOUR_AGENT_KEY>",
           "waitForApproval": true,
-          "approvalTimeoutSeconds": 300
+          "approvalTimeoutSeconds": 300,
+          "failClosed": false
         }
       }
     }

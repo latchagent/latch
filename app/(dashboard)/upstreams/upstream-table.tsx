@@ -19,7 +19,7 @@ type UpstreamRow = {
   baseUrl: string | null;
   transport: "http" | "stdio";
   headers: Record<string, string> | null;
-  authType: string;
+  authType: "none" | "bearer" | "header";
   authValue: string | null;
   tools: unknown[] | null;
   toolsSyncError: string | null;

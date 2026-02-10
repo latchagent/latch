@@ -29,22 +29,14 @@ When a tool call comes in, Latch:
 
 ### Default Behavior
 
-If no policies match, Latch uses sensible defaults:
+If no policies match, Latch defaults to **Allow**.
 
-| Action Class | Default | Examples |
-|--------------|---------|----------|
-| READ | Allow | File reads, API queries |
-| WRITE | Allow | File writes, updates |
-| SEND (internal) | Allow | Messages within your domain |
-| SEND (external) | Require Approval | Emails to external recipients |
-| EXECUTE | Require Approval | Shell commands |
-| SUBMIT | Require Approval | Form submissions, PRs |
-| TRANSFER_VALUE | Deny | Payments, money transfers |
+We recommend adding explicit rules for high‑risk actions (execute/submit/send external) based on your risk tolerance.
 
 ## Creating a Policy
 
-1. Go to **Policies** in the dashboard
-2. Click **Create Policy**
+1. Go to **Policy Rules** in the dashboard
+2. Click **Create Rule**
 3. Configure:
 
 | Field | Description |
@@ -132,9 +124,9 @@ When a policy requires approval:
 
 1. The tool call pauses
 2. You receive a notification (dashboard, Telegram, etc.)
-3. You review the action and its arguments
+3. You review the action and its arguments (redacted)
 4. You approve or deny
-5. If approved, the action proceeds with a one-time token
+5. If approved, the client retries with a **one‑time token** (some clients, like OpenClaw, can auto‑resume after approval by polling the approval status)
 
 ### Approval Tokens
 
@@ -147,6 +139,10 @@ This prevents an agent from getting one approval and reusing it for different ac
 ---
 
 ## LLM-Evaluated Policies
+
+<Note>
+LLM‑evaluated policies (“Smart Rules”) run **before** deterministic rules. Always scope Smart Rules to a specific tool and/or upstream when possible.
+</Note>
 
 For conditions that are hard to express with action classes alone, you can write policies in natural language. When a tool call comes in, an LLM evaluates whether it matches your condition.
 
@@ -166,7 +162,7 @@ These are hard to express as action classes. LLM-evaluated policies handle them.
 ### Creating an LLM-Evaluated Policy
 
 1. Go to **Policies** in the dashboard
-2. Click **Create Policy**
+2. Click **Create Rule**
 3. Toggle on **LLM-Evaluated**
 4. Set the **Effect** (Allow, Deny, or Require Approval)
 5. Write your **Condition** in plain English

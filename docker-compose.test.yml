@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: latch
+      POSTGRES_PASSWORD: latch
+      POSTGRES_DB: latch_test
+    # Use tmpfs so every test run starts from a clean database.
+    tmpfs:
+      - /var/lib/postgresql/data
+    ports:
+      - "55433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U latch -d latch_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  app:
+    build: .
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      # IMPORTANT: test DB
+      DATABASE_URL: postgres://latch:latch@db:5432/latch_test
+      NEXT_PUBLIC_APP_URL: http://localhost:3334
+      # BetterAuth: use a deterministic test secret
+      BETTER_AUTH_SECRET: test-secret
+      PORT: "3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3334:3000"
+
+  test:
+    image: node:20-alpine
+    working_dir: /repo
+    volumes:
+      - ./:/repo
+    environment:
+      DATABASE_URL: postgres://latch:latch@db:5432/latch_test
+      LATCH_BASE_URL: http://app:3000
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started
+    command: >
+      sh -lc "
+        apk add --no-cache curl &&
+        npm install &&
+        echo 'Waiting for app...' &&
+        for i in $(seq 1 60); do curl -fsS http://app:3000/api/health && break || sleep 1; done &&
+        echo 'Pushing schema...' &&
+        npx drizzle-kit push &&
+        echo 'Seeding...' &&
+        npx tsx scripts/test/seed-test.ts > /tmp/seed.json &&
+        echo 'Seed:' && cat /tmp/seed.json &&
+        export LATCH_TEST_SEED="$(cat /tmp/seed.json)" &&
+        echo 'Running smoke...' &&
+        node --version &&
+        npx tsx scripts/test/smoke.ts
+      "

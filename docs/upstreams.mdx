@@ -4,7 +4,12 @@ sidebarTitle: Upstreams
 description: Connect and manage your MCP servers.
 ---
 
-An **upstream** represents an MCP server that Latch protects. When you connect an AI agent to Latch, Latch forwards requests to the upstream and enforces your security policies.
+An **upstream** represents an integration that Latch protects.
+
+- For **MCP**, an upstream is an MCP server registration.
+- For **OpenClaw**, we recommend creating a dedicated upstream (e.g. `openclaw-native`) to scope policies for OpenClaw native tools.
+
+Latch enforces your security policies on all requests that are scoped to that upstream.
 
 ## What is an Upstream?
 
@@ -57,6 +62,10 @@ Already have MCP servers configured? Import them directly:
 ## Tool Discovery
 
 Latch needs to know what tools an upstream exposes so you can create per-tool rules.
+
+<Note>
+OpenClaw native tools are not MCP tools. For OpenClaw, Latch provides a curated picker of common native tools (and supports additional plugin tools via configuration).
+</Note>
 
 | Transport | Discovery Method |
 |-----------|------------------|

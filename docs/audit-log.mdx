@@ -31,14 +31,15 @@ Every tool call is logged with:
 
 ## Understanding Decisions
 
+In the audit log, each request has one of these decisions:
+
 | Decision | Meaning |
 |----------|---------|
-| **Allowed** | Action proceeded automatically (matched an Allow rule or safe default) |
-| **Denied** | Action was blocked (matched a Deny rule) |
+| **Allowed** | Action proceeded automatically |
+| **Denied** | Action was blocked |
 | **Approval Required** | Action is waiting for human approval |
-| **Approved** | Action was approved and completed |
-| **Rejected** | Action was denied by a human reviewer |
-| **Expired** | Approval request timed out |
+
+Approvals themselves have a separate status (Pending/Approved/Denied/Expired) in the **Approvals** view.
 
 ## Automatic Redaction
 
