@@ -1,5 +1,5 @@
-import { getServerSession, getUserWorkspaces } from "@/lib/auth/server";
-import { redirect, notFound } from "next/navigation";
+import { getServerSession, isWorkspaceMember } from "@/lib/auth/server";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requests, agents, upstreams } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -7,14 +7,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
-export default async function AuditDetailPage({ params }: { params: { id: string } }) {
+export default async function AuditDetailPage({ params }: { params?: { id?: string } }) {
   const session = await getServerSession();
   if (!session) redirect("/login");
 
-  const workspacesList = await getUserWorkspaces(session.user.id);
-  if (workspacesList.length === 0) redirect("/onboarding");
+  const id = params?.id;
+  const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
-  const workspaceId = workspacesList[0].workspace.id;
+  if (!id || !isUuid(id)) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Audit Detail</h1>
+            <p className="mt-2 text-muted-foreground">This audit entry could not be found.</p>
+          </div>
+          <Link href="/audit" className="text-sm text-muted-foreground hover:text-foreground">
+            Back to audit
+          </Link>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Not found</CardTitle>
+            <CardDescription>
+              The link is missing an id (or the id is invalid).
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // We intentionally do not rely on "first workspace" ordering here.
+  // Users can belong to multiple workspaces; detail view should work for any workspace member.
+
 
   const [row] = await db
     .select({
@@ -25,10 +52,58 @@ export default async function AuditDetailPage({ params }: { params: { id: string
     .from(requests)
     .leftJoin(agents, eq(requests.agentId, agents.id))
     .leftJoin(upstreams, eq(requests.upstreamId, upstreams.id))
-    .where(eq(requests.id, params.id));
+    .where(eq(requests.id, id));
 
-  if (!row) return notFound();
-  if (row.request.workspaceId !== workspaceId) return notFound();
+  if (!row) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Audit Detail</h1>
+            <p className="mt-2 text-muted-foreground">This audit entry could not be found.</p>
+          </div>
+          <Link href="/audit" className="text-sm text-muted-foreground hover:text-foreground">
+            Back to audit
+          </Link>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Not found</CardTitle>
+            <CardDescription>
+              This request may have been cleaned up, or the link is stale.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  const allowed = await isWorkspaceMember(session.user.id, row.request.workspaceId);
+  if (!allowed) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-tight">Audit Detail</h1>
+            <p className="mt-2 text-muted-foreground">You don’t have access to this workspace.</p>
+          </div>
+          <Link href="/audit" className="text-sm text-muted-foreground hover:text-foreground">
+            Back to audit
+          </Link>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Forbidden</CardTitle>
+            <CardDescription>
+              This request belongs to a workspace you’re not a member of.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   const res = row.request.resource as unknown;
 

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { workspaces, workspaceMembers } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 /**
  * Get current session on the server
@@ -79,8 +79,17 @@ export async function isWorkspaceMember(
   const [member] = await db
     .select()
     .from(workspaceMembers)
-    .where(
-      eq(workspaceMembers.userId, userId)
-    );
-  return !!member && member.workspaceId === workspaceId;
+    .where(eq(workspaceMembers.userId, userId));
+
+  // Back-compat fast path when user has a single workspace.
+  if (!member) return false;
+  if (member.workspaceId === workspaceId) return true;
+
+  // Correct check for multi-workspace users.
+  const [exact] = await db
+    .select()
+    .from(workspaceMembers)
+    .where(and(eq(workspaceMembers.userId, userId), eq(workspaceMembers.workspaceId, workspaceId)));
+
+  return !!exact;
 }

@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Sparkles, Loader2, ShieldCheck, ShieldX, ShieldAlert, Check } from "lucide-react";
+import { Sparkles, Loader2, ShieldCheck, ShieldX, ShieldAlert, Check, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface ParsedRule {
@@ -214,7 +214,24 @@ export function NaturalLanguageRules({ workspaceId }: NaturalLanguageRulesProps)
                   )}
                 </div>
                 <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium">{rule.description}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-medium">{rule.description}</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setParsedRules((prev) => {
+                          if (!prev) return prev;
+                          return prev.filter((_, idx) => idx !== i);
+                        });
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Remove</span>
+                    </Button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     <EffectBadge effect={rule.effect} />
                     <Badge variant="outline" className="text-xs">
@@ -245,7 +262,7 @@ export function NaturalLanguageRules({ workspaceId }: NaturalLanguageRulesProps)
             <Button variant="outline" onClick={() => setShowConfirm(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
+            <Button onClick={handleSave} disabled={isSaving || (parsedRules?.length ?? 0) === 0}>
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
