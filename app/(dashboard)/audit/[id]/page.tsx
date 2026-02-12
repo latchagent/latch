@@ -32,6 +32,11 @@ export default async function AuditDetailPage({ params }: { params?: { id?: stri
             <CardTitle className="text-base">Not found</CardTitle>
             <CardDescription>
               The link is missing an id (or the id is invalid).
+              {id ? (
+                <span className="block mt-2 font-mono text-xs text-muted-foreground break-all">
+                  Received id: {JSON.stringify(id)}
+                </span>
+              ) : null}
             </CardDescription>
           </CardHeader>
         </Card>
